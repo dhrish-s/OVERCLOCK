@@ -1,0 +1,171 @@
+/* animations.css - keyframes only. Restraint is deliberate: the pulse
+   trace is the one signature animated element that runs constantly;
+   everything else (confetti, reveal-pop, level-up) is reserved for
+   genuinely momentous events so it still feels special when it fires. */
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes flame-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.05) rotate(-2deg);
+  }
+  50% {
+    transform: scale(0.97) rotate(1deg);
+  }
+  75% {
+    transform: scale(1.03) rotate(-1deg);
+  }
+}
+.flame-live {
+  display: inline-flex;
+  animation: flame-flicker 2.6s ease-in-out infinite;
+}
+
+@keyframes coin-tick {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+    color: var(--phosphor);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.coin-tick {
+  animation: coin-tick 0.45s ease-out;
+  display: inline-block;
+}
+
+@keyframes spike-pop {
+  0% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-line-draw {
+  from {
+    stroke-dashoffset: 600;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.pulse-trace-path {
+  stroke-dasharray: 600;
+  animation: pulse-line-draw 2.4s linear infinite;
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--phosphor-glow) inset, 0 0 14px -6px var(--phosphor-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--phosphor-glow) inset, 0 0 26px -4px var(--phosphor-glow);
+  }
+}
+.glow-breathe {
+  animation: glow-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) translateX(var(--drift, 0px)) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes level-up-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.slide-up {
+  animation: slide-up 0.22s ease-out;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}

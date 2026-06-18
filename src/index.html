@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    Locked all the way down: no remote scripts/styles/fonts/images/XHR of
+    any kind. Everything the app needs ships inside this folder. style-src
+    needs 'unsafe-inline' because views set per-element inline styles
+    (progress-ring --pct, category accent colors, etc.) rather than
+    generating a stylesheet rule per data point - script-src has no such
+    exception since every interaction is wired via addEventListener, never
+    inline on* attributes.
+  -->
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
+  />
+  <title>Overclock</title>
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+  <link rel="stylesheet" href="styles/animations.css" />
+</head>
+<body>
+  <!-- Replaced wholesale by app.js once the store finishes loading from
+       disk. This placeholder just avoids a flash of pure black on a slow
+       first launch. -->
+  <div
+    style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0e13;color:#80889b;font-family:'Cascadia Code','JetBrains Mono',Consolas,monospace;font-size:13px;letter-spacing:0.06em"
+  >
+    OVERCLOCK - BOOTING…
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

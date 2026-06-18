@@ -1,0 +1,51 @@
+{
+  "name": "overclock-tracker",
+  "productName": "Overclock",
+  "version": "1.0.0",
+  "description": "A local, offline daily execution console for grad-school + job-search grind: LeetCode, applications, system design study, and open source work, with timers, streaks, coins, and rewards.",
+  "main": "main.js",
+  "private": true,
+  "author": "Sam",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node test/logic.test.mjs",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.4"
+  },
+  "build": {
+    "appId": "com.overclock.tracker",
+    "productName": "Overclock",
+    "copyright": "Personal use build",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "package.json",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Overclock"
+    }
+  }
+}

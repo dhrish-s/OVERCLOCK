@@ -1,0 +1,788 @@
+/* components.css - reusable building blocks composed by the view modules. */
+
+/* ---------------------------------------------------------------------
+   Cards
+--------------------------------------------------------------------- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 16px;
+}
+
+.card-raised {
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 16px;
+}
+
+.card-tight {
+  padding: 12px;
+}
+
+.card.glow-phosphor {
+  border-color: var(--phosphor-dim);
+  box-shadow: 0 0 0 1px var(--phosphor-glow) inset, 0 0 18px -8px var(--phosphor-glow);
+}
+
+/* ---------------------------------------------------------------------
+   Buttons
+--------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.05s;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--panel-hover);
+  border-color: var(--mute-2);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--phosphor);
+  border-color: var(--phosphor);
+  color: #1a1206;
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: #ffc578;
+  border-color: #ffc578;
+}
+
+.btn-danger {
+  border-color: var(--diff-red);
+  color: var(--diff-red);
+  background: transparent;
+}
+.btn-danger:hover {
+  background: rgba(242, 85, 90, 0.12);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--mute);
+}
+.btn-ghost:hover {
+  color: var(--ink);
+  background: var(--panel-hover);
+}
+
+.btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.btn-icon {
+  width: 34px;
+  padding: 0;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------
+   Status badges + chips
+--------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--border);
+  color: var(--mute);
+  text-transform: uppercase;
+}
+.badge.idle {
+  color: var(--mute);
+}
+.badge.active {
+  color: var(--phosphor);
+  border-color: var(--phosphor-dim);
+  background: rgba(255, 180, 84, 0.08);
+}
+.badge.active .pip {
+  background: var(--phosphor);
+  box-shadow: 0 0 6px var(--phosphor-glow);
+}
+.badge.done {
+  color: var(--diff-green);
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.08);
+}
+.badge .pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mute-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: var(--r-chip);
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+}
+.chip.coin {
+  color: var(--phosphor);
+}
+.chip.star {
+  color: var(--violet);
+}
+
+/* ---------------------------------------------------------------------
+   Progress ring (SVG, driven by inline --pct 0..1 set from JS)
+--------------------------------------------------------------------- */
+
+.progress-ring {
+  --pct: 0;
+  transform: rotate(-90deg);
+}
+.progress-ring .track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 5;
+}
+.progress-ring .fill {
+  fill: none;
+  stroke: var(--phosphor);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  pathLength: 100;
+  stroke-dashoffset: calc(100 - (100 * var(--pct)));
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s;
+}
+.progress-ring.done .fill {
+  stroke: var(--diff-green);
+}
+
+/* linear variant, used for XP bar */
+.bar-track {
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--border);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--violet), #b3a8ff);
+  border-radius: var(--r-pill);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------------------------------------------------------------------
+   Category module card
+--------------------------------------------------------------------- */
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-card .cat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-chip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+}
+
+.category-card .cat-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.category-card .cat-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+}
+
+.category-card .cat-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ring-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.ring-wrap .ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.cat-progress-text {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--mute);
+}
+
+.cat-streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--phosphor);
+}
+.cat-streak.dead {
+  color: var(--mute-2);
+}
+
+.category-card .cat-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------------
+   Forms
+--------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field label {
+  font-size: 12px;
+  color: var(--mute);
+}
+.input,
+.select,
+.textarea {
+  background: var(--void);
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+  color: var(--ink);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  width: 100%;
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--phosphor-dim);
+}
+.textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-family: var(--font-mono);
+}
+.input.mono,
+.select.mono {
+  font-family: var(--font-mono);
+}
+
+.switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch .track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.switch .track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mute);
+  transition: transform 0.15s, background 0.15s;
+}
+.switch input:checked + .track {
+  background: rgba(255, 180, 84, 0.25);
+}
+.switch input:checked + .track::after {
+  transform: translateX(16px);
+  background: var(--phosphor);
+}
+
+/* ---------------------------------------------------------------------
+   Tabs
+--------------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.tab {
+  background: transparent;
+  border: none;
+  color: var(--mute);
+  padding: 9px 4px;
+  margin-right: 18px;
+  font-size: 13px;
+  cursor: pointer;
+  position: relative;
+}
+.tab.active {
+  color: var(--ink);
+}
+.tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--phosphor);
+}
+
+/* ---------------------------------------------------------------------
+   Modal / overlay (used for focus-session timer, confirms, reward reveal)
+--------------------------------------------------------------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 8, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+}
+.modal.wide {
+  width: 560px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.modal-sub {
+  font-size: 12.5px;
+  color: var(--mute);
+  margin-bottom: 18px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* ---------------------------------------------------------------------
+   Focus / timer modal specifics
+--------------------------------------------------------------------- */
+
+.focus-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 0 4px;
+}
+.focus-timer .big-time {
+  font-family: var(--font-mono);
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.focus-ring-wrap {
+  position: relative;
+  width: 210px;
+  height: 210px;
+}
+.focus-ring-wrap .focus-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.focus-phase-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--mute);
+  text-transform: uppercase;
+}
+.focus-controls {
+  display: flex;
+  gap: 10px;
+}
+.focus-count-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-chip);
+}
+.stepper button {
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+.stepper button:hover {
+  background: var(--panel-hover);
+}
+.stepper .val {
+  font-family: var(--font-mono);
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------
+   Reminder toast (in-app, mirrors native notification)
+--------------------------------------------------------------------- */
+
+.toast-stack {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 60;
+  width: 300px;
+}
+.toast {
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--phosphor);
+  border-radius: var(--r-card);
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: toast-in 0.25s ease-out;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+}
+.toast .toast-icon {
+  color: var(--phosphor);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.toast .toast-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.toast .toast-body {
+  font-size: 12px;
+  color: var(--mute);
+  margin-top: 2px;
+}
+.toast .toast-close {
+  margin-left: auto;
+  color: var(--mute-2);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ---------------------------------------------------------------------
+   Calendar
+--------------------------------------------------------------------- */
+
+.heatmap {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.heatmap .cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--border-soft);
+}
+.heatmap .cell[data-level='1'] {
+  background: rgba(74, 222, 128, 0.22);
+}
+.heatmap .cell[data-level='2'] {
+  background: rgba(74, 222, 128, 0.45);
+}
+.heatmap .cell[data-level='3'] {
+  background: rgba(74, 222, 128, 0.7);
+}
+.heatmap .cell[data-level='4'] {
+  background: var(--diff-green);
+}
+.heatmap .cell.perfect {
+  background: var(--phosphor);
+  box-shadow: 0 0 4px var(--phosphor-glow);
+}
+.heatmap .cell:hover {
+  outline: 1px solid var(--mute);
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+.month-grid .dow {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--mute-2);
+  padding-bottom: 4px;
+}
+.day-cell {
+  aspect-ratio: 1;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--mute);
+  transition: border-color 0.12s, background 0.12s;
+}
+.day-cell:hover {
+  border-color: var(--mute-2);
+}
+.day-cell.empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+.day-cell.today {
+  border-color: var(--phosphor);
+}
+.day-cell.has-activity {
+  color: var(--ink);
+}
+.day-cell .dots {
+  display: flex;
+  gap: 2px;
+}
+.day-cell .dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--mute-2);
+}
+.day-cell .dots span.met {
+  background: var(--diff-green);
+}
+.day-cell.perfect {
+  border-color: var(--phosphor);
+  box-shadow: 0 0 0 1px var(--phosphor-glow) inset;
+}
+.day-cell.selected {
+  outline: 2px solid var(--phosphor);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------------
+   Reward cards
+--------------------------------------------------------------------- */
+
+.reward-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.reward-card .reward-label {
+  font-size: 13.5px;
+}
+.reward-card .reward-cost {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.reward-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 6px;
+  text-align: center;
+}
+.reward-reveal .reveal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-raised);
+  border: 1px solid var(--phosphor-dim);
+  color: var(--phosphor);
+  animation: reveal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reward-reveal .reveal-label {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------
+   Work log entries
+--------------------------------------------------------------------- */
+
+.log-entry {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.log-entry:last-child {
+  border-bottom: none;
+}
+.log-entry .log-date {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--mute);
+  width: 76px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.log-entry .log-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--mute);
+  margin-bottom: 4px;
+}
+.log-entry .log-note {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------
+   Empty states
+--------------------------------------------------------------------- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  color: var(--mute);
+  text-align: center;
+}
+.empty-state .oc-icon {
+  color: var(--mute-2);
+  margin-bottom: 4px;
+}
+
+/* ---------------------------------------------------------------------
+   Tooltips (title-attribute replacement for nav rail)
+--------------------------------------------------------------------- */
+
+[data-tip] {
+  position: relative;
+}
+[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 11.5px;
+  padding: 5px 9px;
+  border-radius: var(--r-chip);
+  white-space: nowrap;
+  z-index: 40;
+  pointer-events: none;
+}

@@ -1,0 +1,296 @@
+// timer.js - the one piece of UI that's a true modal overlay rather than a
+// view: starting a session expands into a focus card with a live clock,
+// then a short "what did you get done" step on End, which is what actually
+// calls store.logSession() and feeds the streak/coin/perfect-day machinery
+// in state.js. A tiny pub-sub (onSessionEvent) lets the dashboard reflect
+// "this category is ACTIVE right now" without timer.js knowing about the
+// dashboard.
+
+import { icon } from './icons.js';
+import { formatDuration } from './logic.js';
+import { showToast } from './notifications.js';
+import { burstConfetti, burstLevelUp } from './confetti.js';
+
+const listeners = new Set();
+export function onSessionEvent(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+function emit(evt) {
+  if (evt.type === 'start') activeSessionCategoryId = evt.categoryId;
+  if (evt.type === 'end' || evt.type === 'discard') activeSessionCategoryId = null;
+  for (const fn of listeners) fn(evt);
+}
+
+let activeSessionCategoryId = null;
+export function getActiveCategoryId() {
+  return activeSessionCategoryId;
+}
+
+let audioCtx = null;
+function beep(freq = 880, durationMs = 180) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = 0.06;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + durationMs / 1000);
+    osc.stop(audioCtx.currentTime + durationMs / 1000 + 0.02);
+  } catch (err) {
+    // Audio is a nice-to-have; never let it break a session.
+  }
+}
+
+export function openFocusModal(category, store) {
+  const soundOn = () => store.data.settings.soundEnabled !== false;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay fade-in';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const mode = category.timerMode;
+  const hasRing = mode === 'countdown' || mode === 'pomodoro';
+
+  let phase = 'work'; // pomodoro only
+  let remaining = mode === 'pomodoro' || mode === 'countdown' ? category.timerWorkSec : 0;
+  let elapsed = 0; // stopwatch
+  let accumulatedWorkSec = 0; // what actually gets logged as "seconds"
+  let count = 0;
+  let running = true;
+  let intervalId = null;
+  let ended = false;
+
+  emit({ type: 'start', categoryId: category.id });
+
+  function totalForPhase() {
+    return phase === 'work' ? category.timerWorkSec : category.timerBreakSec;
+  }
+
+  function renderShell() {
+    modal.innerHTML = `
+      <div class="row between" style="margin-bottom:4px">
+        <div class="modal-title"></div>
+        <button class="btn btn-ghost btn-icon" id="ft-close" aria-label="Close">${icon('x', 16)}</button>
+      </div>
+      <div class="modal-sub"></div>
+      <div class="focus-timer">
+        ${
+          hasRing
+            ? `<div class="focus-ring-wrap">
+                <svg class="progress-ring" width="210" height="210" viewBox="0 0 100 100">
+                  <circle class="track" cx="50" cy="50" r="44"/>
+                  <circle class="fill" id="ft-ring" cx="50" cy="50" r="44" pathLength="100"/>
+                </svg>
+                <div class="focus-center">
+                  <span class="focus-phase-label" id="ft-phase"></span>
+                  <span class="big-time mono" id="ft-time"></span>
+                </div>
+              </div>`
+            : `<span class="focus-phase-label" id="ft-phase"></span>
+               <span class="big-time mono" id="ft-time"></span>`
+        }
+        <div class="focus-controls">
+          <button class="btn btn-icon" id="ft-toggle" data-tip="Pause / resume">${icon('pause', 16)}</button>
+          <button class="btn btn-icon" id="ft-reset" data-tip="Reset clock">${icon('reset', 16)}</button>
+          <button class="btn btn-primary" id="ft-end">End session</button>
+        </div>
+        <div class="focus-count-row">
+          <span class="mute" style="font-size:12.5px"></span>
+          <div class="stepper">
+            <button id="ft-dec">−</button>
+            <span class="val mono" id="ft-count">0</span>
+            <button id="ft-inc">+</button>
+          </div>
+        </div>
+      </div>
+    `;
+    modal.querySelector('.modal-title').textContent = category.name;
+    modal.querySelector('.modal-sub').textContent =
+      mode === 'pomodoro'
+        ? 'Pomodoro - work and break cycle automatically until you end the session.'
+        : mode === 'countdown'
+        ? `Countdown from ${Math.round(category.timerWorkSec / 60)} minutes.`
+        : 'Stopwatch - counts up freely.';
+    modal.querySelector('.focus-count-row .mute').textContent = category.countLabel;
+
+    modal.querySelector('#ft-close').addEventListener('click', () => closeAndDiscard());
+    modal.querySelector('#ft-toggle').addEventListener('click', toggleRunning);
+    modal.querySelector('#ft-reset').addEventListener('click', resetClock);
+    modal.querySelector('#ft-end').addEventListener('click', goToEndStep);
+    modal.querySelector('#ft-inc').addEventListener('click', () => {
+      count += 1;
+      modal.querySelector('#ft-count').textContent = String(count);
+    });
+    modal.querySelector('#ft-dec').addEventListener('click', () => {
+      count = Math.max(0, count - 1);
+      modal.querySelector('#ft-count').textContent = String(count);
+    });
+
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    const timeEl = modal.querySelector('#ft-time');
+    const phaseEl = modal.querySelector('#ft-phase');
+    const toggleBtn = modal.querySelector('#ft-toggle');
+    if (!timeEl) return;
+
+    if (mode === 'stopwatch') {
+      timeEl.textContent = formatDuration(elapsed);
+      phaseEl.textContent = running ? 'RUNNING' : 'PAUSED';
+    } else {
+      timeEl.textContent = formatDuration(remaining);
+      phaseEl.textContent = mode === 'pomodoro' ? (phase === 'work' ? 'FOCUS' : 'BREAK') : 'FOCUS';
+      const ring = modal.querySelector('#ft-ring');
+      if (ring) {
+        const total = totalForPhase() || 1;
+        const pct = 1 - remaining / total;
+        ring.parentElement.style.setProperty('--pct', String(Math.max(0, Math.min(1, pct))));
+      }
+    }
+    if (toggleBtn) toggleBtn.innerHTML = icon(running ? 'pause' : 'play', 16);
+  }
+
+  function tick() {
+    if (!running) return;
+    if (mode === 'stopwatch') {
+      elapsed += 1;
+      accumulatedWorkSec += 1;
+    } else {
+      remaining -= 1;
+      if (phase === 'work' || mode === 'countdown') accumulatedWorkSec += 1;
+      if (remaining <= 0) {
+        if (mode === 'pomodoro') {
+          beep(phase === 'work' ? 660 : 880);
+          if (phase === 'work') {
+            phase = 'break';
+            remaining = category.timerBreakSec || 1;
+            showToast({ kind: 'info', title: 'Break time', body: `Step away for ${Math.round((category.timerBreakSec || 0) / 60)} minutes.`, timeout: 6000 });
+          } else {
+            phase = 'work';
+            remaining = category.timerWorkSec;
+            showToast({ kind: 'info', title: 'Back to focus', body: category.name, timeout: 5000 });
+          }
+        } else {
+          remaining = 0;
+          running = false;
+          beep(660);
+          showToast({ kind: 'info', title: "Time's up", body: `${category.name} countdown finished.`, timeout: 7000 });
+        }
+      }
+    }
+    updateDisplay();
+  }
+
+  function toggleRunning() {
+    running = !running;
+    updateDisplay();
+  }
+
+  function resetClock() {
+    if (mode === 'stopwatch') {
+      elapsed = 0;
+      accumulatedWorkSec = 0;
+    } else {
+      phase = 'work';
+      remaining = category.timerWorkSec;
+      accumulatedWorkSec = 0;
+    }
+    updateDisplay();
+  }
+
+  function startInterval() {
+    intervalId = setInterval(tick, 1000);
+  }
+
+  function stopInterval() {
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+  }
+
+  function closeAndDiscard() {
+    if (ended) return;
+    if (accumulatedWorkSec > 5 || count > 0) {
+      const sure = window.confirm('Discard this session? Nothing will be logged.');
+      if (!sure) return;
+    }
+    stopInterval();
+    emit({ type: 'discard', categoryId: category.id });
+    overlay.remove();
+  }
+
+  function goToEndStep() {
+    running = false;
+    stopInterval();
+    modal.innerHTML = `
+      <div class="modal-title">Wrap up - ${category.name}</div>
+      <div class="modal-sub mono"></div>
+      <div class="field">
+        <label for="ft-note">What did you get done? (optional, goes in your work log)</label>
+        <textarea class="textarea" id="ft-note" placeholder="e.g. Solved two graph problems, reviewed sliding-window pattern..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="ft-back">Back</button>
+        <button class="btn btn-primary" id="ft-confirm">Log session</button>
+      </div>
+    `;
+    const summaryParts = [];
+    if (accumulatedWorkSec > 0) summaryParts.push(`${formatDuration(accumulatedWorkSec)} logged`);
+    if (count > 0) summaryParts.push(`${count} ${category.countLabel.toLowerCase()}`);
+    modal.querySelector('.modal-sub').textContent = summaryParts.join(' · ') || 'No time or count recorded yet.';
+
+    modal.querySelector('#ft-back').addEventListener('click', () => {
+      renderShell();
+      startInterval();
+    });
+    modal.querySelector('#ft-confirm').addEventListener('click', () => {
+      const note = modal.querySelector('#ft-note').value;
+      finishSession(note);
+    });
+  }
+
+  function finishSession(note) {
+    ended = true;
+    const result = store.logSession({
+      categoryId: category.id,
+      seconds: accumulatedWorkSec,
+      count,
+      note,
+    });
+    emit({ type: 'end', categoryId: category.id, result });
+
+    modal.innerHTML = `
+      <div class="reward-reveal">
+        <div class="reveal-icon">${icon('coin', 28)}</div>
+        <div class="reveal-label"><span class="coin-tick accent">+${result.coinsEarned} coins</span></div>
+        <div class="mute" style="font-size:13px"></div>
+        <button class="btn btn-primary btn-block" id="ft-done">Done</button>
+      </div>
+    `;
+    const subText = [];
+    if (result.streakNow > 0) subText.push(`${category.name} streak: ${result.streakNow} day${result.streakNow === 1 ? '' : 's'}`);
+    if (result.perfectDayJustHit) subText.push('Perfect day! +1 star');
+    if (result.leveledUp) subText.push(`Leveled up to ${store.data.profile.level}!`);
+    modal.querySelector('.mute').textContent = subText.join(' · ');
+
+    if (result.perfectDayJustHit) burstConfetti(50);
+    if (result.leveledUp) burstLevelUp();
+
+    modal.querySelector('#ft-done').addEventListener('click', () => overlay.remove());
+  }
+
+  renderShell();
+  startInterval();
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeAndDiscard();
+  });
+}
