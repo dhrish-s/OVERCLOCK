@@ -20,6 +20,8 @@ const DEFAULT_CATEGORIES = [
     color: '#FFB454',
     goalType: 'count',
     goalValue: 2,
+    baselineGoalValue: 1,
+    focusGoalValue: 4,
     countLabel: 'Problems solved',
     timerMode: 'pomodoro',
     timerWorkSec: 25 * 60,
@@ -36,6 +38,8 @@ const DEFAULT_CATEGORIES = [
     color: '#8B7CF6',
     goalType: 'count',
     goalValue: 3,
+    baselineGoalValue: 1,
+    focusGoalValue: 8,
     countLabel: 'Applications sent',
     timerMode: 'stopwatch',
     timerWorkSec: 0,
@@ -52,6 +56,8 @@ const DEFAULT_CATEGORIES = [
     color: '#4ADE80',
     goalType: 'minutes',
     goalValue: 45,
+    baselineGoalValue: 15,
+    focusGoalValue: 90,
     countLabel: 'Topics covered',
     timerMode: 'countdown',
     timerWorkSec: 45 * 60,
@@ -68,6 +74,8 @@ const DEFAULT_CATEGORIES = [
     color: '#F2555A',
     goalType: 'minutes',
     goalValue: 30,
+    baselineGoalValue: 10,
+    focusGoalValue: 60,
     countLabel: 'Commits / PRs',
     timerMode: 'stopwatch',
     timerWorkSec: 0,
@@ -79,6 +87,14 @@ const DEFAULT_CATEGORIES = [
   },
 ];
 
+const DEFAULT_DAY_MODES = [
+  { id: 'balanced', label: 'Balanced', description: 'Keep every active category warm at baseline.', focusCategoryIds: [] },
+  { id: 'leetcode_heavy', label: 'LeetCode Heavy', description: 'Push problem-solving harder while keeping other areas alive.', focusCategoryIds: ['cat_leetcode'] },
+  { id: 'github_heavy', label: 'GitHub Heavy', description: 'Push open-source or portfolio output while keeping other areas alive.', focusCategoryIds: ['cat_oss'] },
+  { id: 'jobs_heavy', label: 'Job Search Heavy', description: 'Push applications and job-search output while keeping other areas alive.', focusCategoryIds: ['cat_jobs'] },
+  { id: 'system_heavy', label: 'System Design Heavy', description: 'Push architecture study while keeping other areas alive.', focusCategoryIds: ['cat_sysdesign'] },
+  { id: 'recovery', label: 'Recovery', description: 'Minimum viable momentum after a rough day.', focusCategoryIds: [] },
+];
 const DEFAULT_SMALL_REWARDS = [
   { id: 'r_smallnap', label: '15–20 min power nap', tier: 'small', cost: 60, disabled: false },
   { id: 'r_song', label: 'Listen to one song, no multitasking', tier: 'small', cost: 40, disabled: false },
@@ -108,6 +124,10 @@ export function createDefaultData() {
     },
     categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
     days: {},
+    dailyPlanning: {
+      defaultModeId: 'balanced',
+      dayModes: DEFAULT_DAY_MODES.map((m) => ({ ...m, focusCategoryIds: [...m.focusCategoryIds] })),
+    },
     streaks: { overall: { current: 0, longest: 0, lastDate: null } },
     rewards: {
       small: DEFAULT_SMALL_REWARDS.map((r) => ({ ...r })),
@@ -342,6 +362,24 @@ class Store {
   }
 }
 
+function backfillFlexibleGoals(data) {
+  const defaults = createDefaultData();
+  const defaultCategoryById = new Map(defaults.categories.map((c) => [c.id, c]));
+  for (const category of data.categories || []) {
+    const fallback = defaultCategoryById.get(category.id) || category;
+    if (typeof category.baselineGoalValue !== 'number') {
+      category.baselineGoalValue = Number(fallback.baselineGoalValue) || Number(category.goalValue) || 1;
+    }
+    if (typeof category.focusGoalValue !== 'number') {
+      category.focusGoalValue = Number(fallback.focusGoalValue) || Number(category.goalValue) || 1;
+    }
+  }
+  if (!data.dailyPlanning) data.dailyPlanning = defaults.dailyPlanning;
+  if (!data.dailyPlanning.defaultModeId) data.dailyPlanning.defaultModeId = defaults.dailyPlanning.defaultModeId;
+  if (!Array.isArray(data.dailyPlanning.dayModes) || data.dailyPlanning.dayModes.length === 0) {
+    data.dailyPlanning.dayModes = defaults.dailyPlanning.dayModes;
+  }
+}
 function migrate(data) {
   // Single version today; this is the seam for future schema migrations
   // so old local backups never silently corrupt on upgrade.
@@ -356,6 +394,7 @@ function migrate(data) {
   if (typeof data.profile.streakShields !== 'number') data.profile.streakShields = 0;
   if (typeof data.profile.stars !== 'number') data.profile.stars = 0;
   if (typeof data.settings.launchOnStartup !== 'boolean') data.settings.launchOnStartup = true;
+  backfillFlexibleGoals(data);
   return data;
 }
 

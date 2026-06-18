@@ -18,6 +18,7 @@ import {
   dailyMissionStatus,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
+import { createDefaultData } from '../src/js/state.js';
 
 let pass = 0;
 let fail = 0;
@@ -217,6 +218,16 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   ];
   const target = targetForCategory(categories[0], { id: 'legacy_focus', focusCategoryIds: ['leet'] });
   assertEqual(target.goalValue, 2, 'legacy categories fall back to existing goal value');
+}
+// ---- default flexible goal data ----
+{
+  const data = createDefaultData();
+  const leet = data.categories.find((c) => c.id === 'cat_leetcode');
+  assertEqual(leet.baselineGoalValue, 1, 'default LeetCode baseline is lower than the old static goal');
+  assertEqual(leet.focusGoalValue, 4, 'default LeetCode focus target supports heavy days');
+  assertTrue(Array.isArray(data.dailyPlanning.dayModes), 'default data includes configurable day modes');
+  assertTrue(data.dailyPlanning.dayModes.some((m) => m.id === 'leetcode_heavy'), 'default day modes include LeetCode heavy');
+  assertEqual(data.dailyPlanning.defaultModeId, 'balanced', 'balanced is the default day mode');
 }
 // ---- focus clock / background-safe timing ----
 {
