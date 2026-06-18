@@ -25,6 +25,7 @@
 const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 const IS_WINDOWS = process.platform === 'win32';
 if (IS_WINDOWS) {
@@ -120,6 +121,9 @@ function syncLoginItemSetting(enabled) {
 }
 
 function createWindow(startHidden) {
+  const appIndexPath = path.join(__dirname, 'src', 'index.html');
+  const appIndexUrl = pathToFileURL(appIndexPath).href;
+
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 840,
@@ -137,7 +141,7 @@ function createWindow(startHidden) {
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+  mainWindow.loadFile(appIndexPath);
 
   // When Windows launched us automatically at login, stay tucked in the
   // tray instead of popping a window in front of whatever the user just
@@ -160,10 +164,10 @@ function createWindow(startHidden) {
     mainWindow = null;
   });
 
-  // Lock the renderer to local content only.
+  // Lock the renderer to this app's own bundled entry point only.
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith('file://')) {
+    if (url !== appIndexUrl) {
       event.preventDefault();
     }
   });
