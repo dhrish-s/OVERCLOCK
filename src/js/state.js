@@ -251,7 +251,7 @@ class Store {
 
   /** Log a finished session against a category: adds minutes/count, rolls
    * coins, recomputes goal-met / streaks / perfect-day / level for today. */
-  logSession({ categoryId, seconds, count, note }) {
+  logSession({ categoryId, seconds, count, note, intent, completed }) {
     let result = { coinsEarned: 0, leveledUp: false, perfectDayJustHit: false, streakNow: 0 };
     this.mutate((data) => {
       const category = data.categories.find((c) => c.id === categoryId);
@@ -274,6 +274,8 @@ class Store {
         durationSec: seconds || 0,
         count: count || 0,
         note: note || '',
+        intent: intent || '',
+        completed: !!completed,
       });
 
       if (category.goalType === 'count') {
@@ -319,6 +321,8 @@ class Store {
           date: today,
           categoryId,
           note: note.trim(),
+          intent: intent || '',
+          completed: !!completed,
           createdAt: new Date().toISOString(),
         });
       }
