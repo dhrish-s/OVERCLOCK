@@ -7,6 +7,7 @@
 // dashboard.
 
 import { icon } from './icons.js';
+import { FocusClock } from './focusClock.js';
 import { formatDuration } from './logic.js';
 import { showToast } from './notifications.js';
 import { burstConfetti, burstLevelUp } from './confetti.js';
@@ -48,6 +49,9 @@ function beep(freq = 880, durationMs = 180) {
 
 export function openFocusModal(category, store) {
   const soundOn = () => store.data.settings.soundEnabled !== false;
+  const playBeep = (freq) => {
+    if (soundOn()) beep(freq);
+  };
 
   const overlay = document.createElement('div');
   overlay.className = 'overlay fade-in';
@@ -59,19 +63,20 @@ export function openFocusModal(category, store) {
   const mode = category.timerMode;
   const hasRing = mode === 'countdown' || mode === 'pomodoro';
 
-  let phase = 'work'; // pomodoro only
-  let remaining = mode === 'pomodoro' || mode === 'countdown' ? category.timerWorkSec : 0;
-  let elapsed = 0; // stopwatch
-  let accumulatedWorkSec = 0; // what actually gets logged as "seconds"
+  const clock = new FocusClock({
+    mode,
+    workSec: category.timerWorkSec,
+    breakSec: category.timerBreakSec,
+  });
   let count = 0;
-  let running = true;
   let intervalId = null;
   let ended = false;
+  let noteStepSeconds = 0;
 
   emit({ type: 'start', categoryId: category.id });
 
   function totalForPhase() {
-    return phase === 'work' ? category.timerWorkSec : category.timerBreakSec;
+    return clock.snapshot().phase === 'work' ? category.timerWorkSec : category.timerBreakSec;
   }
 
   function renderShell() {
@@ -138,72 +143,55 @@ export function openFocusModal(category, store) {
   }
 
   function updateDisplay() {
+    const snap = clock.snapshot();
     const timeEl = modal.querySelector('#ft-time');
     const phaseEl = modal.querySelector('#ft-phase');
     const toggleBtn = modal.querySelector('#ft-toggle');
     if (!timeEl) return;
 
     if (mode === 'stopwatch') {
-      timeEl.textContent = formatDuration(elapsed);
-      phaseEl.textContent = running ? 'RUNNING' : 'PAUSED';
+      timeEl.textContent = formatDuration(snap.elapsedSec);
+      phaseEl.textContent = snap.running ? 'RUNNING' : 'PAUSED';
     } else {
-      timeEl.textContent = formatDuration(remaining);
-      phaseEl.textContent = mode === 'pomodoro' ? (phase === 'work' ? 'FOCUS' : 'BREAK') : 'FOCUS';
+      timeEl.textContent = formatDuration(snap.remainingSec);
+      phaseEl.textContent = mode === 'pomodoro' ? (snap.phase === 'work' ? 'FOCUS' : 'BREAK') : 'FOCUS';
       const ring = modal.querySelector('#ft-ring');
       if (ring) {
         const total = totalForPhase() || 1;
-        const pct = 1 - remaining / total;
+        const pct = 1 - snap.remainingSec / total;
         ring.parentElement.style.setProperty('--pct', String(Math.max(0, Math.min(1, pct))));
       }
     }
-    if (toggleBtn) toggleBtn.innerHTML = icon(running ? 'pause' : 'play', 16);
+    if (toggleBtn) toggleBtn.innerHTML = icon(snap.running ? 'pause' : 'play', 16);
+  }
+
+  function handleClockEvents(events) {
+    if (events.length === 0) return;
+    const evt = events[events.length - 1];
+    if (evt === 'work-complete') {
+      playBeep(660);
+      showToast({ kind: 'info', title: 'Break time', body: `Step away for ${Math.round((category.timerBreakSec || 0) / 60)} minutes.`, timeout: 6000 });
+    } else if (evt === 'break-complete') {
+      playBeep(880);
+      showToast({ kind: 'info', title: 'Back to focus', body: category.name, timeout: 5000 });
+    } else if (evt === 'countdown-complete') {
+      playBeep(660);
+      showToast({ kind: 'info', title: "Time's up", body: `${category.name} countdown finished.`, timeout: 7000 });
+    }
   }
 
   function tick() {
-    if (!running) return;
-    if (mode === 'stopwatch') {
-      elapsed += 1;
-      accumulatedWorkSec += 1;
-    } else {
-      remaining -= 1;
-      if (phase === 'work' || mode === 'countdown') accumulatedWorkSec += 1;
-      if (remaining <= 0) {
-        if (mode === 'pomodoro') {
-          beep(phase === 'work' ? 660 : 880);
-          if (phase === 'work') {
-            phase = 'break';
-            remaining = category.timerBreakSec || 1;
-            showToast({ kind: 'info', title: 'Break time', body: `Step away for ${Math.round((category.timerBreakSec || 0) / 60)} minutes.`, timeout: 6000 });
-          } else {
-            phase = 'work';
-            remaining = category.timerWorkSec;
-            showToast({ kind: 'info', title: 'Back to focus', body: category.name, timeout: 5000 });
-          }
-        } else {
-          remaining = 0;
-          running = false;
-          beep(660);
-          showToast({ kind: 'info', title: "Time's up", body: `${category.name} countdown finished.`, timeout: 7000 });
-        }
-      }
-    }
+    handleClockEvents(clock.advance());
     updateDisplay();
   }
 
   function toggleRunning() {
-    running = !running;
+    clock.toggle();
     updateDisplay();
   }
 
   function resetClock() {
-    if (mode === 'stopwatch') {
-      elapsed = 0;
-      accumulatedWorkSec = 0;
-    } else {
-      phase = 'work';
-      remaining = category.timerWorkSec;
-      accumulatedWorkSec = 0;
-    }
+    clock.reset();
     updateDisplay();
   }
 
@@ -216,20 +204,39 @@ export function openFocusModal(category, store) {
     intervalId = null;
   }
 
+  function syncFromLaptopClock() {
+    tick();
+  }
+
+  function addClockListeners() {
+    document.addEventListener('visibilitychange', syncFromLaptopClock);
+    window.addEventListener('focus', syncFromLaptopClock);
+  }
+
+  function removeClockListeners() {
+    document.removeEventListener('visibilitychange', syncFromLaptopClock);
+    window.removeEventListener('focus', syncFromLaptopClock);
+  }
+
   function closeAndDiscard() {
     if (ended) return;
-    if (accumulatedWorkSec > 5 || count > 0) {
+    tick();
+    if (clock.snapshot().accumulatedWorkSec > 5 || count > 0) {
       const sure = window.confirm('Discard this session? Nothing will be logged.');
       if (!sure) return;
     }
     stopInterval();
+    removeClockListeners();
     emit({ type: 'discard', categoryId: category.id });
     overlay.remove();
   }
 
   function goToEndStep() {
-    running = false;
+    tick();
+    clock.setRunning(false);
+    noteStepSeconds = clock.snapshot().accumulatedWorkSec;
     stopInterval();
+    removeClockListeners();
     modal.innerHTML = `
       <div class="modal-title">Wrap up - ${category.name}</div>
       <div class="modal-sub mono"></div>
@@ -243,13 +250,15 @@ export function openFocusModal(category, store) {
       </div>
     `;
     const summaryParts = [];
-    if (accumulatedWorkSec > 0) summaryParts.push(`${formatDuration(accumulatedWorkSec)} logged`);
+    if (noteStepSeconds > 0) summaryParts.push(`${formatDuration(noteStepSeconds)} logged`);
     if (count > 0) summaryParts.push(`${count} ${category.countLabel.toLowerCase()}`);
     modal.querySelector('.modal-sub').textContent = summaryParts.join(' · ') || 'No time or count recorded yet.';
 
     modal.querySelector('#ft-back').addEventListener('click', () => {
       renderShell();
+      clock.setRunning(true);
       startInterval();
+      addClockListeners();
     });
     modal.querySelector('#ft-confirm').addEventListener('click', () => {
       const note = modal.querySelector('#ft-note').value;
@@ -261,7 +270,7 @@ export function openFocusModal(category, store) {
     ended = true;
     const result = store.logSession({
       categoryId: category.id,
-      seconds: accumulatedWorkSec,
+      seconds: noteStepSeconds,
       count,
       note,
     });
@@ -284,11 +293,15 @@ export function openFocusModal(category, store) {
     if (result.perfectDayJustHit) burstConfetti(50);
     if (result.leveledUp) burstLevelUp();
 
-    modal.querySelector('#ft-done').addEventListener('click', () => overlay.remove());
+    modal.querySelector('#ft-done').addEventListener('click', () => {
+      removeClockListeners();
+      overlay.remove();
+    });
   }
 
   renderShell();
   startInterval();
+  addClockListeners();
 
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeAndDiscard();

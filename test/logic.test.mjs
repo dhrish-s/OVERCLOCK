@@ -13,6 +13,7 @@ import {
   formatMinutesShort,
   monthMatrix,
 } from '../src/js/logic.js';
+import { FocusClock } from '../src/js/focusClock.js';
 
 let pass = 0;
 let fail = 0;
@@ -168,6 +169,65 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   const flat = rows.flat();
   assertEqual(flat.filter((c) => c !== null).length, 30, 'June month matrix contains exactly 30 real days');
   assertTrue(rows.every((r) => r.length === 7), 'every week row has 7 cells');
+}
+
+// ---- focus clock / background-safe timing ----
+{
+  let now = 1_000;
+  const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
+  now += 5_000;
+  clock.advance();
+  assertEqual(clock.snapshot().elapsedSec, 5, 'stopwatch catches up from wall-clock elapsed time');
+  assertEqual(clock.snapshot().accumulatedWorkSec, 5, 'stopwatch logs wall-clock work seconds');
+}
+
+{
+  let now = 1_000;
+  const clock = new FocusClock({ mode: 'countdown', workSec: 10, now: () => now });
+  now += 25_000;
+  const events = clock.advance();
+  assertEqual(clock.snapshot().remainingSec, 0, 'countdown clamps to zero after a delayed background tick');
+  assertEqual(clock.snapshot().accumulatedWorkSec, 10, 'countdown logs only the configured work duration');
+  assertEqual(events, ['countdown-complete'], 'countdown emits completion once when delayed past zero');
+}
+
+{
+  let now = 1_000;
+  const clock = new FocusClock({ mode: 'pomodoro', workSec: 5, breakSec: 3, now: () => now });
+  now += 6_000;
+  const events = clock.advance();
+  const snap = clock.snapshot();
+  assertEqual(events, ['work-complete'], 'pomodoro rolls from work to break across a delayed tick');
+  assertEqual(snap.phase, 'break', 'pomodoro enters break phase after work completes');
+  assertEqual(snap.remainingSec, 2, 'pomodoro carries leftover delayed time into the break phase');
+  assertEqual(snap.accumulatedWorkSec, 5, 'pomodoro logs only work-phase seconds during break rollover');
+}
+
+{
+  let now = 1_000;
+  const clock = new FocusClock({ mode: 'pomodoro', workSec: 5, breakSec: 3, now: () => now });
+  now += 17_000;
+  const events = clock.advance();
+  const snap = clock.snapshot();
+  assertEqual(events, ['work-complete', 'break-complete', 'work-complete', 'break-complete'], 'pomodoro catches up across multiple delayed phases');
+  assertEqual(snap.phase, 'work', 'pomodoro lands in the correct phase after multi-cycle catch-up');
+  assertEqual(snap.remainingSec, 4, 'pomodoro preserves leftover time after multi-cycle catch-up');
+  assertEqual(snap.accumulatedWorkSec, 11, 'pomodoro accumulates only work phases across multi-cycle catch-up');
+}
+
+{
+  let now = 1_000;
+  const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
+  now += 2_000;
+  clock.advance();
+  clock.setRunning(false);
+  now += 20_000;
+  clock.advance();
+  assertEqual(clock.snapshot().accumulatedWorkSec, 2, 'paused stopwatch does not accumulate background time');
+  clock.setRunning(true);
+  now += 3_000;
+  clock.advance();
+  assertEqual(clock.snapshot().accumulatedWorkSec, 5, 'resumed stopwatch continues from laptop time');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
