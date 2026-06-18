@@ -5,7 +5,7 @@
 // sacrificing anything visually.
 
 import { escapeHtml } from './../dom.js';
-import { addDays, todayKey, formatMinutesShort } from './../logic.js';
+import { addDays, todayKey, formatMinutesShort, reviewForRange } from './../logic.js';
 
 function coinsBarChart(data, days = 14) {
   const today = todayKey();
@@ -81,6 +81,8 @@ export function render(root, store) {
       (sum, k) => sum + Object.values(data.days[k].categoryProgress || {}).reduce((s, p) => s + (p.sessions?.length || 0), 0),
       0
     );
+    const review = reviewForRange(data, cats, data.dailyPlanning?.dayModes || [], todayKey(), 7);
+    const weakest = cats.find((c) => c.id === review.weakestCategoryId);
 
     root.innerHTML = `
       <div class="view fade-in">
@@ -96,6 +98,22 @@ export function render(root, store) {
           <div class="card-tight"><div class="mute" style="font-size:11.5px">Longest streak</div><div class="mono" style="font-size:20px">${data.streaks.overall?.longest || 0}</div></div>
           <div class="card-tight"><div class="mute" style="font-size:11.5px">Total sessions</div><div class="mono" style="font-size:20px">${totalSessions}</div></div>
           <div class="card-tight"><div class="mute" style="font-size:11.5px">Lifetime coins</div><div class="mono" style="font-size:20px">${totalCoinsAllTime}</div></div>
+        </div>
+
+        <div class="card-raised" style="margin-bottom:16px">
+          <div class="row between wrap" style="margin-bottom:10px">
+            <div>
+              <div style="font-weight:600;font-size:13.5px">Weekly review</div>
+              <div class="mute" style="font-size:12px">Last 7 days, measured against flexible daily missions</div>
+            </div>
+            <div class="mono mute" style="font-size:11.5px">Weakest: ${escapeHtml(weakest ? weakest.name : 'Not enough data')}</div>
+          </div>
+          <div class="grid grid-cols-4">
+            <div class="card-tight"><div class="mute" style="font-size:11.5px">Baseline days</div><div class="mono" style="font-size:20px">${review.baselineCompleteDays}/7</div></div>
+            <div class="card-tight"><div class="mute" style="font-size:11.5px">Mission days</div><div class="mono" style="font-size:20px">${review.missionCompleteDays}/7</div></div>
+            <div class="card-tight"><div class="mute" style="font-size:11.5px">Focus sessions</div><div class="mono" style="font-size:20px">${review.totalSessions}</div></div>
+            <div class="card-tight"><div class="mute" style="font-size:11.5px">Deep work</div><div class="mono" style="font-size:20px">${formatMinutesShort(review.totalMinutes)}</div></div>
+          </div>
         </div>
 
         <div class="card" style="margin-bottom:16px">
