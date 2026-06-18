@@ -63,20 +63,44 @@ export function openFocusModal(category, store) {
   const mode = category.timerMode;
   const hasRing = mode === 'countdown' || mode === 'pomodoro';
 
-  const clock = new FocusClock({
-    mode,
-    workSec: category.timerWorkSec,
-    breakSec: category.timerBreakSec,
-  });
+  let clock = null;
+  let sessionIntent = '';
   let count = 0;
   let intervalId = null;
   let ended = false;
   let noteStepSeconds = 0;
 
-  emit({ type: 'start', categoryId: category.id });
-
   function totalForPhase() {
     return clock.snapshot().phase === 'work' ? category.timerWorkSec : category.timerBreakSec;
+  }
+
+  function renderIntentStep() {
+    modal.innerHTML = `
+      <div class="modal-title">Start ${category.name}</div>
+      <div class="modal-sub">Name the concrete thing you are about to finish.</div>
+      <div class="field">
+        <label for="ft-intent">Session intent</label>
+        <textarea class="textarea" id="ft-intent" placeholder="e.g. Finish two graph problems, send three tailored applications, draft one README section..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="ft-cancel-intent">Cancel</button>
+        <button class="btn btn-primary" id="ft-start-intent">Start focus</button>
+      </div>
+    `;
+    modal.querySelector('#ft-cancel-intent').addEventListener('click', () => closeAndDiscard());
+    modal.querySelector('#ft-start-intent').addEventListener('click', () => {
+      sessionIntent = modal.querySelector('#ft-intent').value.trim();
+      clock = new FocusClock({
+        mode,
+        workSec: category.timerWorkSec,
+        breakSec: category.timerBreakSec,
+      });
+      emit({ type: 'start', categoryId: category.id });
+      renderShell();
+      startInterval();
+      addClockListeners();
+    });
+    setTimeout(() => modal.querySelector('#ft-intent')?.focus(), 0);
   }
 
   function renderShell() {
@@ -143,6 +167,7 @@ export function openFocusModal(category, store) {
   }
 
   function updateDisplay() {
+    if (!clock) return;
     const snap = clock.snapshot();
     const timeEl = modal.querySelector('#ft-time');
     const phaseEl = modal.querySelector('#ft-phase');
@@ -220,8 +245,12 @@ export function openFocusModal(category, store) {
 
   function closeAndDiscard() {
     if (ended) return;
+    if (!clock) {
+      overlay.remove();
+      return;
+    }
     tick();
-    if (clock.snapshot().accumulatedWorkSec > 5 || count > 0) {
+    if (clock.snapshot().accumulatedWorkSec > 5 || count > 0 || sessionIntent) {
       const sure = window.confirm('Discard this session? Nothing will be logged.');
       if (!sure) return;
     }
@@ -240,6 +269,13 @@ export function openFocusModal(category, store) {
     modal.innerHTML = `
       <div class="modal-title">Wrap up - ${category.name}</div>
       <div class="modal-sub mono"></div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Intent</label>
+        <div class="input mono" style="min-height:36px;white-space:normal" id="ft-intent-summary"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label class="row" style="gap:8px;flex-direction:row;align-items:center"><input type="checkbox" id="ft-completed" checked/> Finished the intended outcome</label>
+      </div>
       <div class="field">
         <label for="ft-note">What did you get done? (optional, goes in your work log)</label>
         <textarea class="textarea" id="ft-note" placeholder="e.g. Solved two graph problems, reviewed sliding-window pattern..."></textarea>
@@ -253,6 +289,7 @@ export function openFocusModal(category, store) {
     if (noteStepSeconds > 0) summaryParts.push(`${formatDuration(noteStepSeconds)} logged`);
     if (count > 0) summaryParts.push(`${count} ${category.countLabel.toLowerCase()}`);
     modal.querySelector('.modal-sub').textContent = summaryParts.join(' · ') || 'No time or count recorded yet.';
+    modal.querySelector('#ft-intent-summary').textContent = sessionIntent || 'No intent written.';
 
     modal.querySelector('#ft-back').addEventListener('click', () => {
       renderShell();
@@ -262,17 +299,20 @@ export function openFocusModal(category, store) {
     });
     modal.querySelector('#ft-confirm').addEventListener('click', () => {
       const note = modal.querySelector('#ft-note').value;
-      finishSession(note);
+      const completed = modal.querySelector('#ft-completed').checked;
+      finishSession(note, completed);
     });
   }
 
-  function finishSession(note) {
+  function finishSession(note, completed) {
     ended = true;
     const result = store.logSession({
       categoryId: category.id,
       seconds: noteStepSeconds,
       count,
       note,
+      intent: sessionIntent,
+      completed,
     });
     emit({ type: 'end', categoryId: category.id, result });
 
@@ -299,9 +339,7 @@ export function openFocusModal(category, store) {
     });
   }
 
-  renderShell();
-  startInterval();
-  addClockListeners();
+  renderIntentStep();
 
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeAndDiscard();
