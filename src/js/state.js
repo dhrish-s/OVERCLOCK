@@ -7,7 +7,7 @@ import {
   uid,
   todayKey,
   updateStreakForToday,
-  isPerfectDay,
+  dailyMissionStatus,
   applyXp,
   randomInRange,
 } from './logic.js';
@@ -258,7 +258,8 @@ class Store {
       if (!category) return;
       const today = todayKey();
       const day = ensureDayShape(data, today);
-      const wasPerfectBefore = isPerfectDay(day, data.categories);
+      const dayMode = dayModeById(data, day.plan?.modeId || defaultModeId(data));
+      const wasPerfectBefore = dailyMissionStatus(day, data.categories, dayMode).complete;
 
       if (!day.categoryProgress[categoryId]) {
         day.categoryProgress[categoryId] = { sessions: [], minutes: 0, count: 0, goalMet: false };
@@ -299,7 +300,7 @@ class Store {
       data.streaks[categoryId] = newCatStreak;
 
       // Overall perfect-day streak + bonus star, only the moment it flips.
-      const nowPerfect = isPerfectDay(day, data.categories);
+      const nowPerfect = dailyMissionStatus(day, data.categories, dayMode).complete;
       day.perfectDay = nowPerfect;
       if (nowPerfect && !wasPerfectBefore) {
         data.profile.stars += 1;
