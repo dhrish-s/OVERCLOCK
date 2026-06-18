@@ -219,6 +219,60 @@ export function dailyMissionStatus(day, categories, dayMode) {
     complete: missions.length > 0 && missions.every((m) => m.progress.goalMet),
   };
 }
+export function rangeEndingOn(endKey, days) {
+  const keys = [];
+  for (let i = Math.max(1, days) - 1; i >= 0; i--) keys.push(addDays(endKey, -i));
+  return keys;
+}
+
+export function reviewForRange(data, categories, dayModes, endKey = todayKey(), days = 7) {
+  const active = categories.filter((c) => !c.archived);
+  const modes = Array.isArray(dayModes) ? dayModes : [];
+  const defaultMode = modes[0] || { id: 'balanced', focusCategoryIds: [] };
+  const keys = rangeEndingOn(endKey, days);
+  const categoryStats = active.map((category) => ({ categoryId: category.id, complete: 0, possible: 0, minutes: 0, count: 0 }));
+  let missionCompleteDays = 0;
+  let baselineCompleteDays = 0;
+  let totalMinutes = 0;
+  let totalSessions = 0;
+  let totalCoins = 0;
+
+  for (const key of keys) {
+    const day = data.days?.[key] || { categoryProgress: {} };
+    const modeId = day.plan?.modeId || data.dailyPlanning?.defaultModeId || defaultMode.id;
+    const mode = modes.find((m) => m.id === modeId) || defaultMode;
+    const status = dailyMissionStatus(day, active, mode);
+    if (status.complete) missionCompleteDays += 1;
+    if (status.baselineMet) baselineCompleteDays += 1;
+    totalCoins += day.coinsEarned || 0;
+
+    for (const mission of status.missions) {
+      const stat = categoryStats.find((s) => s.categoryId === mission.category.id);
+      if (!stat) continue;
+      stat.possible += 1;
+      if (mission.progress.goalMet) stat.complete += 1;
+      stat.minutes += mission.progress.minutes;
+      stat.count += mission.progress.count;
+      totalMinutes += mission.progress.minutes;
+      totalSessions += day.categoryProgress?.[mission.category.id]?.sessions?.length || 0;
+    }
+  }
+
+  const weakest = categoryStats
+    .filter((s) => s.possible > 0)
+    .sort((a, b) => a.complete / a.possible - b.complete / b.possible)[0] || null;
+
+  return {
+    keys,
+    missionCompleteDays,
+    baselineCompleteDays,
+    totalMinutes,
+    totalSessions,
+    totalCoins,
+    weakestCategoryId: weakest?.categoryId || null,
+    categoryStats,
+  };
+}
 export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }

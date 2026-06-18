@@ -16,6 +16,8 @@ import {
   progressForTarget,
   buildDailyMissions,
   dailyMissionStatus,
+  rangeEndingOn,
+  reviewForRange,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData } from '../src/js/state.js';
@@ -218,6 +220,47 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   ];
   const target = targetForCategory(categories[0], { id: 'legacy_focus', focusCategoryIds: ['leet'] });
   assertEqual(target.goalValue, 2, 'legacy categories fall back to existing goal value');
+}
+// ---- weekly review logic ----
+{
+  assertEqual(rangeEndingOn('2026-06-07', 3), ['2026-06-05', '2026-06-06', '2026-06-07'], 'rangeEndingOn returns ordered local date keys');
+}
+
+{
+  const categories = [
+    { id: 'leet', goalType: 'count', goalValue: 2, baselineGoalValue: 1, focusGoalValue: 4, archived: false },
+    { id: 'oss', goalType: 'minutes', goalValue: 30, baselineGoalValue: 10, focusGoalValue: 60, archived: false },
+  ];
+  const dayModes = [
+    { id: 'balanced', focusCategoryIds: [] },
+    { id: 'leetcode_heavy', focusCategoryIds: ['leet'] },
+  ];
+  const data = {
+    dailyPlanning: { defaultModeId: 'balanced' },
+    days: {
+      '2026-06-05': {
+        coinsEarned: 10,
+        categoryProgress: {
+          leet: { count: 1, minutes: 20, sessions: [{ id: 's1' }] },
+          oss: { count: 0, minutes: 10, sessions: [{ id: 's2' }] },
+        },
+      },
+      '2026-06-06': {
+        plan: { modeId: 'leetcode_heavy' },
+        coinsEarned: 20,
+        categoryProgress: {
+          leet: { count: 4, minutes: 80, sessions: [{ id: 's3' }] },
+          oss: { count: 0, minutes: 5, sessions: [] },
+        },
+      },
+    },
+  };
+  const review = reviewForRange(data, categories, dayModes, '2026-06-07', 3);
+  assertEqual(review.baselineCompleteDays, 1, 'weekly review counts days where baselines are complete');
+  assertEqual(review.missionCompleteDays, 1, 'weekly review counts fully complete daily missions');
+  assertEqual(review.totalSessions, 3, 'weekly review totals sessions across active categories');
+  assertEqual(review.totalCoins, 30, 'weekly review totals coins across the range');
+  assertEqual(review.weakestCategoryId, 'oss', 'weekly review identifies the weakest category by completion ratio');
 }
 // ---- default flexible goal data ----
 {
