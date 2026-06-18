@@ -114,7 +114,7 @@ export function createDefaultData() {
   return {
     version: 1,
     profile: {
-      displayName: 'Sam',
+      displayName: 'Dhrish',
       level: 1,
       xp: 0,
       coins: 0,
