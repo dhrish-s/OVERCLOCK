@@ -147,10 +147,24 @@ export function createDefaultData() {
   };
 }
 
+function defaultModeId(data) {
+  return data.dailyPlanning?.defaultModeId || 'balanced';
+}
+
+function dayModeById(data, modeId) {
+  const modes = data.dailyPlanning?.dayModes || [];
+  return modes.find((m) => m.id === modeId) || modes.find((m) => m.id === defaultModeId(data)) || null;
+}
+
+function createDayPlan(data, modeId = defaultModeId(data)) {
+  return { modeId, selectedAt: null, customOverrides: {} };
+}
+
 function ensureDayShape(data, key) {
   if (!data.days[key]) {
-    data.days[key] = { categoryProgress: {}, perfectDay: false, coinsEarned: 0, starsEarned: 0 };
+    data.days[key] = { categoryProgress: {}, perfectDay: false, coinsEarned: 0, starsEarned: 0, plan: createDayPlan(data) };
   }
+  if (!data.days[key].plan) data.days[key].plan = createDayPlan(data);
   return data.days[key];
 }
 
@@ -218,6 +232,21 @@ class Store {
 
   activeCategories() {
     return this.data.categories.filter((c) => !c.archived).sort((a, b) => a.order - b.order);
+  }
+
+  dayModeForDate(key = todayKey()) {
+    const day = ensureDayShape(this.data, key);
+    return dayModeById(this.data, day.plan.modeId);
+  }
+
+  setDayModeForDate(modeId, key = todayKey()) {
+    const mode = dayModeById(this.data, modeId);
+    if (!mode) return { ok: false, error: 'Unknown day mode.' };
+    this.mutate((data) => {
+      const day = ensureDayShape(data, key);
+      day.plan = { ...day.plan, modeId: mode.id, selectedAt: new Date().toISOString() };
+    });
+    return { ok: true, mode };
   }
 
   /** Log a finished session against a category: adds minutes/count, rolls
@@ -378,6 +407,11 @@ function backfillFlexibleGoals(data) {
   if (!data.dailyPlanning.defaultModeId) data.dailyPlanning.defaultModeId = defaults.dailyPlanning.defaultModeId;
   if (!Array.isArray(data.dailyPlanning.dayModes) || data.dailyPlanning.dayModes.length === 0) {
     data.dailyPlanning.dayModes = defaults.dailyPlanning.dayModes;
+  }
+  for (const day of Object.values(data.days || {})) {
+    if (!day.plan) day.plan = createDayPlan(data);
+    if (!day.plan.modeId) day.plan.modeId = defaultModeId(data);
+    if (!day.plan.customOverrides) day.plan.customOverrides = {};
   }
 }
 function migrate(data) {
