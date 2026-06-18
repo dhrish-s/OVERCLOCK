@@ -12,6 +12,10 @@ import {
   formatDuration,
   formatMinutesShort,
   monthMatrix,
+  targetForCategory,
+  progressForTarget,
+  buildDailyMissions,
+  dailyMissionStatus,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 
@@ -171,6 +175,49 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   assertTrue(rows.every((r) => r.length === 7), 'every week row has 7 cells');
 }
 
+// ---- flexible daily missions ----
+{
+  const categories = [
+    { id: 'leet', goalType: 'count', goalValue: 2, baselineGoalValue: 1, focusGoalValue: 4, archived: false },
+    { id: 'jobs', goalType: 'count', goalValue: 3, baselineGoalValue: 1, focusGoalValue: 8, archived: false },
+  ];
+  const leetcodeHeavy = { id: 'leetcode_heavy', focusCategoryIds: ['leet'] };
+  const leetTarget = targetForCategory(categories[0], leetcodeHeavy);
+  const jobsTarget = targetForCategory(categories[1], leetcodeHeavy);
+  assertEqual(leetTarget, { categoryId: 'leet', role: 'focus', goalType: 'count', goalValue: 4 }, 'focus day uses focus target for selected category');
+  assertEqual(jobsTarget, { categoryId: 'jobs', role: 'baseline', goalType: 'count', goalValue: 1 }, 'focus day keeps other categories at baseline');
+}
+
+{
+  const category = { id: 'sys', goalType: 'minutes', goalValue: 45, baselineGoalValue: 15, focusGoalValue: 90, archived: false };
+  const target = targetForCategory(category, { id: 'system_heavy', focusCategoryIds: ['sys'] });
+  const progress = progressForTarget({ categoryProgress: { sys: { minutes: 45, count: 0 } } }, category, target);
+  assertEqual(progress.goalMet, false, 'focus target can be stricter than old static goal');
+  assertEqual(progress.pct, 0.5, 'target progress percent uses the resolved daily target');
+}
+
+{
+  const categories = [
+    { id: 'leet', goalType: 'count', goalValue: 2, baselineGoalValue: 1, focusGoalValue: 4, archived: false },
+    { id: 'oss', goalType: 'minutes', goalValue: 30, baselineGoalValue: 10, focusGoalValue: 60, archived: false },
+    { id: 'old', goalType: 'count', goalValue: 1, archived: true },
+  ];
+  const day = { categoryProgress: { leet: { count: 4 }, oss: { minutes: 10 }, old: { count: 0 } } };
+  const missions = buildDailyMissions(day, categories, { id: 'leetcode_heavy', focusCategoryIds: ['leet'] });
+  assertEqual(missions.length, 2, 'daily missions ignore archived categories');
+  const status = dailyMissionStatus(day, categories, { id: 'leetcode_heavy', focusCategoryIds: ['leet'] });
+  assertTrue(status.baselineMet, 'baseline categories can be complete while focus category is separate');
+  assertTrue(status.focusMet, 'focus category completion is tracked separately');
+  assertTrue(status.complete, 'daily mission is complete when all resolved targets are met');
+}
+
+{
+  const categories = [
+    { id: 'leet', goalType: 'count', goalValue: 2, archived: false },
+  ];
+  const target = targetForCategory(categories[0], { id: 'legacy_focus', focusCategoryIds: ['leet'] });
+  assertEqual(target.goalValue, 2, 'legacy categories fall back to existing goal value');
+}
 // ---- focus clock / background-safe timing ----
 {
   let now = 1_000;

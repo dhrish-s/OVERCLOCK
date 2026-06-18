@@ -167,6 +167,58 @@ export function progressForCategory(day, category) {
   return { count, minutes, goalMet: !!prog.goalMet, pct };
 }
 
+export function targetForCategory(category, dayMode) {
+  const modeFocusIds = Array.isArray(dayMode?.focusCategoryIds) ? dayMode.focusCategoryIds : [];
+  const isFocus = modeFocusIds.includes(category.id);
+  const goalType = category.goalType;
+  const fallbackValue = Number(category.goalValue) || 1;
+  const baselineValue = Number(category.baselineGoalValue) || fallbackValue;
+  const focusValue = Number(category.focusGoalValue) || fallbackValue;
+  const goalValue = isFocus ? Math.max(baselineValue, focusValue) : baselineValue;
+  return {
+    categoryId: category.id,
+    role: isFocus ? 'focus' : 'baseline',
+    goalType,
+    goalValue,
+  };
+}
+
+export function progressForTarget(day, category, target) {
+  const prog = day?.categoryProgress?.[category.id];
+  const count = prog?.count || 0;
+  const minutes = prog?.minutes || 0;
+  const actual = target.goalType === 'count' ? count : minutes;
+  const pct = target.goalValue > 0 ? Math.min(1, actual / target.goalValue) : 0;
+  return {
+    count,
+    minutes,
+    actual,
+    goalMet: actual >= target.goalValue,
+    pct,
+  };
+}
+
+export function buildDailyMissions(day, categories, dayMode) {
+  return categories
+    .filter((c) => !c.archived)
+    .map((category) => {
+      const target = targetForCategory(category, dayMode);
+      const progress = progressForTarget(day, category, target);
+      return { category, target, progress };
+    });
+}
+
+export function dailyMissionStatus(day, categories, dayMode) {
+  const missions = buildDailyMissions(day, categories, dayMode);
+  const baseline = missions.filter((m) => m.target.role === 'baseline');
+  const focus = missions.filter((m) => m.target.role === 'focus');
+  return {
+    missions,
+    baselineMet: baseline.every((m) => m.progress.goalMet),
+    focusMet: focus.every((m) => m.progress.goalMet),
+    complete: missions.length > 0 && missions.every((m) => m.progress.goalMet),
+  };
+}
 export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
