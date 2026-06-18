@@ -235,8 +235,8 @@ class Store {
   }
 
   dayModeForDate(key = todayKey()) {
-    const day = ensureDayShape(this.data, key);
-    return dayModeById(this.data, day.plan.modeId);
+    const modeId = this.data.days[key]?.plan?.modeId || defaultModeId(this.data);
+    return dayModeById(this.data, modeId);
   }
 
   setDayModeForDate(modeId, key = todayKey()) {
