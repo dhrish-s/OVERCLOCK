@@ -35,6 +35,7 @@ function entryText(entry) {
 function statusLabel(entry) {
   if (entry.status === 'active') return 'ACTIVE';
   if (entry.status === 'discarded') return 'DISCARDED';
+  if (entry.type === 'manual') return 'MANUAL';
   return entry.completed ? 'DONE' : 'LOGGED';
 }
 
@@ -82,7 +83,7 @@ function detailsHtml(entries, store) {
         <div style="flex:1;min-width:0">
           <div class="row between wrap" style="gap:8px;margin-bottom:4px">
             <div class="log-tag" style="color:${color}">${icon(cat ? cat.icon : 'book', 12)}<span>${escapeHtml(cat ? cat.name : 'Unknown')}</span></div>
-            <span class="badge ${entry.status === 'active' ? 'active' : entry.status === 'discarded' ? 'idle' : entry.completed ? 'done' : 'idle'}">${statusLabel(entry)}</span>
+            <span class="badge ${entry.status === 'active' ? 'active' : entry.status === 'discarded' ? 'idle' : entry.type === 'manual' ? 'manual' : entry.completed ? 'done' : 'idle'}">${statusLabel(entry)}</span>
           </div>
           ${entry.intent ? `<div class="log-intent">${escapeHtml(entry.intent)}</div>` : ''}
           <div class="log-note">${escapeHtml(entryText(entry))}</div>
@@ -92,12 +93,127 @@ function detailsHtml(entries, store) {
     .join('');
 }
 
+function defaultManualTimes(selectedDate) {
+  const now = new Date();
+  const isToday = todayKey() === selectedDate;
+  const end = isToday ? now : new Date(2026, 0, 1, 9, 0);
+  const start = new Date(end);
+  start.setHours(Math.max(0, end.getHours() - 1), end.getMinutes(), 0, 0);
+  if (start.getTime() === end.getTime()) end.setMinutes(end.getMinutes() + 30);
+  const fmt = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return {
+    startTime: fmt(start),
+    endTime: fmt(end),
+  };
+}
+
+function localDateTimeIso(dateKey, timeValue) {
+  if (!timeValue) return '';
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const [hh, mm] = timeValue.split(':').map(Number);
+  return new Date(y, m - 1, d, hh || 0, mm || 0).toISOString();
+}
+
 export function render(root, store) {
   let selectedDate = todayKey();
   let search = '';
   let categoryFilter = 'all';
   let fromHour = 0;
   let toHour = 24;
+
+  function openManualEntryModal() {
+    const cats = store.activeCategories();
+    const defaults = defaultManualTimes(selectedDate);
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay fade-in';
+    const modal = document.createElement('div');
+    modal.className = 'modal wide';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.remove();
+    }
+
+    modal.innerHTML = `
+      <div class="row between" style="margin-bottom:4px">
+        <div>
+          <div class="modal-title">Add manual entry</div>
+          <div class="modal-sub">Backfill forgotten work into the timeline without changing coins or streaks.</div>
+        </div>
+        <button class="btn btn-ghost btn-icon" id="manual-close" aria-label="Close">${icon('x', 16)}</button>
+      </div>
+      <div class="grid grid-cols-2" style="margin-bottom:12px">
+        <div class="field">
+          <label for="manual-date">Date</label>
+          <input class="input mono" id="manual-date" type="date" value="${selectedDate}"/>
+        </div>
+        <div class="field">
+          <label for="manual-category">Category</label>
+          <select class="select" id="manual-category">
+            ${cats.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label for="manual-start">Start</label>
+          <input class="input mono" id="manual-start" type="time" value="${defaults.startTime}"/>
+        </div>
+        <div class="field">
+          <label for="manual-end">End</label>
+          <input class="input mono" id="manual-end" type="time" value="${defaults.endTime}"/>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label for="manual-intent">Task</label>
+        <input class="input" id="manual-intent" placeholder="e.g. Reviewed system design notes, helped with a resume, read docs..."/>
+      </div>
+      <div class="grid grid-cols-2" style="margin-bottom:12px">
+        <div class="field">
+          <label for="manual-count">Count</label>
+          <input class="input mono" id="manual-count" type="number" min="0" step="1" value="0"/>
+        </div>
+        <label class="row" style="gap:8px;align-items:center;padding-top:22px">
+          <input type="checkbox" id="manual-completed" checked/> Completed
+        </label>
+      </div>
+      <div class="field">
+        <label for="manual-note">Note</label>
+        <textarea class="textarea" id="manual-note" placeholder="What did you actually do?"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="manual-cancel">Cancel</button>
+        <button class="btn btn-primary" id="manual-save">${icon('plus', 14)} Add entry</button>
+      </div>
+    `;
+
+    modal.querySelector('#manual-close').addEventListener('click', close);
+    modal.querySelector('#manual-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+    modal.querySelector('#manual-save').addEventListener('click', () => {
+      const dateValue = modal.querySelector('#manual-date').value || selectedDate;
+      const startTime = modal.querySelector('#manual-start').value;
+      const endTime = modal.querySelector('#manual-end').value;
+      const result = store.addManualWorklogEntry({
+        categoryId: modal.querySelector('#manual-category').value,
+        startedAt: localDateTimeIso(dateValue, startTime),
+        endedAt: localDateTimeIso(dateValue, endTime),
+        intent: modal.querySelector('#manual-intent').value,
+        note: modal.querySelector('#manual-note').value,
+        count: modal.querySelector('#manual-count').value,
+        completed: modal.querySelector('#manual-completed').checked,
+      });
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      selectedDate = result.entry.date;
+      close();
+      paint();
+    });
+    setTimeout(() => modal.querySelector('#manual-intent')?.focus(), 0);
+  }
 
   function filteredEntries() {
     const dayEntries = worklogEntriesForDate(store.data.worklog, selectedDate);
@@ -123,6 +239,7 @@ export function render(root, store) {
             <button class="btn btn-icon" id="log-prev-day" data-tip="Previous day">${icon('chevronLeft', 14)}</button>
             <input class="input mono" id="log-date" type="date" value="${selectedDate}" style="width:150px"/>
             <button class="btn btn-icon" id="log-next-day" data-tip="Next day">${icon('chevronRight', 14)}</button>
+            <button class="btn btn-primary" id="add-manual-log">${icon('plus', 14)} Add entry</button>
             <button class="btn" id="export-log">${icon('download', 14)} Export CSV</button>
           </div>
         </div>
@@ -176,6 +293,7 @@ export function render(root, store) {
       selectedDate = e.target.value || todayKey();
       paint();
     });
+    root.querySelector('#add-manual-log').addEventListener('click', openManualEntryModal);
     const searchInput = root.querySelector('#log-search');
     searchInput.addEventListener(
       'input',
@@ -199,10 +317,10 @@ export function render(root, store) {
       paint();
     });
     root.querySelector('#export-log').addEventListener('click', async () => {
-      const rows = [['date', 'start', 'end', 'category', 'status', 'durationSec', 'count', 'intent', 'note'].map(csvEscape).join(',')];
+      const rows = [['date', 'type', 'start', 'end', 'category', 'status', 'durationSec', 'count', 'intent', 'note'].map(csvEscape).join(',')];
       for (const l of data.worklog) {
         const cat = store.getCategory(l.categoryId);
-        rows.push([l.date, l.startedAt, l.endedAt || '', cat ? cat.name : l.categoryId, l.status || 'completed', l.durationSec || 0, l.count || 0, l.intent || '', l.note || ''].map(csvEscape).join(','));
+        rows.push([l.date, l.type || 'session', l.startedAt, l.endedAt || '', cat ? cat.name : l.categoryId, l.status || 'completed', l.durationSec || 0, l.count || 0, l.intent || '', l.note || ''].map(csvEscape).join(','));
       }
       const result = await window.api.exportFile('overclock-worklog.csv', rows.join('\n'));
       if (result && result.ok) {

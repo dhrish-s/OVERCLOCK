@@ -139,6 +139,11 @@
   border-color: rgba(74, 222, 128, 0.4);
   background: rgba(74, 222, 128, 0.08);
 }
+.badge.manual {
+  color: var(--violet);
+  border-color: rgba(139, 124, 246, 0.4);
+  background: rgba(139, 124, 246, 0.08);
+}
 .badge .pip {
   width: 5px;
   height: 5px;

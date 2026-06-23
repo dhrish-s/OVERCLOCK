@@ -394,6 +394,38 @@ class Store {
     });
   }
 
+  /** Manual entries are for honest backfills and one-off tasks. They appear
+   * in the timeline/calendar, but intentionally do not award coins/streaks. */
+  addManualWorklogEntry({ categoryId, startedAt, endedAt, intent, note, count, completed = true }) {
+    const start = new Date(startedAt);
+    const end = new Date(endedAt);
+    if (!categoryId || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      return { ok: false, error: 'Choose a category and a valid start/end time.' };
+    }
+
+    const now = new Date().toISOString();
+    const entry = {
+      id: uid('log'),
+      type: 'manual',
+      status: 'completed',
+      date: dateKeyFromIso(start.toISOString()),
+      categoryId,
+      startedAt: start.toISOString(),
+      endedAt: end.toISOString(),
+      durationSec: Math.round((end - start) / 1000),
+      count: Math.max(0, Number(count) || 0),
+      note: (note || '').trim(),
+      intent: (intent || '').trim(),
+      completed: !!completed,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.mutate((data) => {
+      data.worklog.unshift(entry);
+    });
+    return { ok: true, entry };
+  }
+
   /** Manually adjust today's count for a category without a timer session
    * (e.g. logging one more job application sent outside a focus block). */
   addQuickCount({ categoryId, amount, note }) {
