@@ -11,6 +11,9 @@ import {
   progressForCategory,
   formatDuration,
   formatMinutesShort,
+  dayBounds,
+  dateKeyFromIso,
+  formatClockTime,
   monthMatrix,
   targetForCategory,
   progressForTarget,
@@ -18,6 +21,10 @@ import {
   dailyMissionStatus,
   rangeEndingOn,
   reviewForRange,
+  normalizedWorklogEntry,
+  worklogEntriesForDate,
+  filterWorklogEntries,
+  buildHourlyTimeline,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData } from '../src/js/state.js';
@@ -46,6 +53,10 @@ function assertTrue(cond, label) {
 
 // ---- date helpers ----
 assertEqual(dateKey(new Date(2026, 5, 17)), '2026-06-17', 'dateKey formats month/day with leading zeros');
+assertEqual(dayBounds('2026-06-17').start.getHours(), 0, 'dayBounds starts at local midnight');
+assertEqual(dayBounds('2026-06-17').end.getDate(), 18, 'dayBounds ends at the next local day');
+assertEqual(dateKeyFromIso(new Date(2026, 5, 17, 9, 30).toISOString()), '2026-06-17', 'dateKeyFromIso uses the local laptop date');
+assertTrue(formatClockTime(new Date(2026, 5, 17, 9, 30).toISOString()).includes('9'), 'formatClockTime produces a local clock label');
 assertEqual(addDays('2026-06-17', 1), '2026-06-18', 'addDays forward');
 assertEqual(addDays('2026-06-01', -1), '2026-05-31', 'addDays crosses month boundary backward');
 assertEqual(diffDays('2026-06-17', '2026-06-18'), 1, 'diffDays one day forward');
@@ -169,6 +180,57 @@ assertEqual(formatDuration(3661), '1:01:01', 'formatDuration h:mm:ss over an hou
 assertEqual(formatMinutesShort(45), '45m', 'formatMinutesShort under an hour');
 assertEqual(formatMinutesShort(125), '2h 5m', 'formatMinutesShort over an hour with remainder');
 assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with no remainder');
+
+// ---- worklog timeline helpers ----
+{
+  const start = new Date(2026, 5, 17, 9, 15).toISOString();
+  const active = normalizedWorklogEntry({ id: 'log1', categoryId: 'leet', startedAt: start, status: 'active' }, new Date(2026, 5, 17, 9, 45));
+  assertEqual(active.durationSec, 1800, 'active worklog entries use now as their temporary end time');
+  assertEqual(active.date, '2026-06-17', 'normalized worklog entries derive a local date when needed');
+}
+
+{
+  const entries = [
+    {
+      id: 'a',
+      categoryId: 'leet',
+      intent: 'Graph problems',
+      note: '',
+      startedAt: new Date(2026, 5, 17, 9, 15).toISOString(),
+      endedAt: new Date(2026, 5, 17, 10, 0).toISOString(),
+      status: 'completed',
+    },
+    {
+      id: 'b',
+      categoryId: 'jobs',
+      intent: 'Applications',
+      note: 'Sent two',
+      startedAt: new Date(2026, 5, 18, 11, 0).toISOString(),
+      endedAt: new Date(2026, 5, 18, 11, 30).toISOString(),
+      status: 'completed',
+    },
+  ];
+  const dayEntries = worklogEntriesForDate(entries, '2026-06-17', new Date(2026, 5, 17, 12, 0));
+  assertEqual(dayEntries.map((e) => e.id), ['a'], 'worklogEntriesForDate returns only entries overlapping the selected day');
+  const searched = filterWorklogEntries(dayEntries, { search: 'graph', fromHour: 9, toHour: 11 });
+  assertEqual(searched.map((e) => e.id), ['a'], 'filterWorklogEntries searches intent and respects hour range');
+  const overlapping = filterWorklogEntries(
+    [
+      {
+        id: 'early',
+        date: '2026-06-17',
+        categoryId: 'leet',
+        startedAt: new Date(2026, 5, 17, 8, 30).toISOString(),
+        endedAt: new Date(2026, 5, 17, 9, 15).toISOString(),
+      },
+    ],
+    { fromHour: 9, toHour: 10, dateKey: '2026-06-17' }
+  );
+  assertEqual(overlapping.map((e) => e.id), ['early'], 'filterWorklogEntries includes sessions that overlap a selected time range');
+  const timeline = buildHourlyTimeline(dayEntries, '2026-06-17', new Date(2026, 5, 17, 12, 0));
+  assertEqual(timeline[9].entries.length, 1, 'buildHourlyTimeline places an entry in its starting hour');
+  assertEqual(timeline[9].totalMinutes, 45, 'buildHourlyTimeline totals minutes inside each hour');
+}
 
 // ---- month matrix ----
 {

@@ -34,6 +34,23 @@ export function todayKey() {
   return dateKey(new Date());
 }
 
+export function dayBounds(key) {
+  const start = keyToDate(key);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return { start, end };
+}
+
+export function dateKeyFromIso(iso) {
+  if (!iso) return todayKey();
+  return dateKey(new Date(iso));
+}
+
+export function formatClockTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 export function monthMatrix(year, monthIndex) {
   // Returns a 6x7 grid of date keys (or null for padding cells) for a
   // standard month calendar, Sunday-first.
@@ -296,4 +313,87 @@ export function formatMinutesShort(totalMinutes) {
   const h = Math.floor(m / 60);
   const rem = m % 60;
   return rem ? `${h}h ${rem}m` : `${h}h`;
+}
+
+function entryStartMs(entry) {
+  return new Date(entry.startedAt || entry.createdAt || 0).getTime();
+}
+
+function entryEndMs(entry, fallbackEndMs = Date.now()) {
+  if (entry.endedAt) return new Date(entry.endedAt).getTime();
+  if (entry.status === 'active') return fallbackEndMs;
+  return entryStartMs(entry);
+}
+
+export function normalizedWorklogEntry(entry, now = new Date()) {
+  const nowMs = now.getTime();
+  const startMs = entryStartMs(entry);
+  const endMs = Math.max(startMs, entryEndMs(entry, nowMs));
+  const durationSec =
+    typeof entry.durationSec === 'number' ? entry.durationSec : Math.max(0, Math.round((endMs - startMs) / 1000));
+  return {
+    ...entry,
+    startedAt: entry.startedAt || entry.createdAt || new Date(startMs).toISOString(),
+    endedAt: entry.endedAt || null,
+    durationSec,
+    status: entry.status || 'completed',
+    date: entry.date || dateKey(new Date(startMs)),
+  };
+}
+
+export function worklogEntriesForDate(worklog, key, now = new Date()) {
+  const { start, end } = dayBounds(key);
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+  return (worklog || [])
+    .map((entry) => normalizedWorklogEntry(entry, now))
+    .filter((entry) => {
+      const s = entryStartMs(entry);
+      const e = entryEndMs(entry, now.getTime());
+      return s < endMs && e >= startMs;
+    })
+    .sort((a, b) => entryStartMs(a) - entryStartMs(b));
+}
+
+export function filterWorklogEntries(entries, { categoryId = 'all', search = '', fromHour = 0, toHour = 24, dateKey: rangeDateKey = null } = {}) {
+  const q = search.trim().toLowerCase();
+  const baseDate = rangeDateKey || entries?.[0]?.date || todayKey();
+  const { start } = dayBounds(baseDate);
+  const rangeStartMs = start.getTime() + Number(fromHour) * 3600000;
+  const rangeEndMs = start.getTime() + Number(toHour) * 3600000;
+  return (entries || []).filter((entry) => {
+    if (categoryId !== 'all' && entry.categoryId !== categoryId) return false;
+    if (q) {
+      const haystack = `${entry.note || ''} ${entry.intent || ''} ${entry.status || ''}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return entryStartMs(entry) < rangeEndMs && entryEndMs(entry) >= rangeStartMs;
+  });
+}
+
+export function buildHourlyTimeline(entries, key, now = new Date()) {
+  const { start } = dayBounds(key);
+  const dayStartMs = start.getTime();
+  return Array.from({ length: 24 }, (_, hour) => {
+    const hourStart = dayStartMs + hour * 3600000;
+    const hourEnd = hourStart + 3600000;
+    const hourEntries = (entries || [])
+      .map((entry) => normalizedWorklogEntry(entry, now))
+      .filter((entry) => entryStartMs(entry) < hourEnd && entryEndMs(entry, now.getTime()) > hourStart)
+      .map((entry) => {
+        const s = Math.max(entryStartMs(entry), hourStart);
+        const e = Math.min(entryEndMs(entry, now.getTime()), hourEnd);
+        return {
+          ...entry,
+          offsetPct: ((s - hourStart) / 3600000) * 100,
+          widthPct: Math.max(2, ((e - s) / 3600000) * 100),
+        };
+      });
+    const totalMinutes = hourEntries.reduce((sum, entry) => {
+      const s = Math.max(entryStartMs(entry), hourStart);
+      const e = Math.min(entryEndMs(entry, now.getTime()), hourEnd);
+      return sum + Math.max(0, Math.round((e - s) / 60000));
+    }, 0);
+    return { hour, label: `${String(hour).padStart(2, '0')}:00`, entries: hourEntries, totalMinutes };
+  });
 }
