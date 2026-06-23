@@ -69,6 +69,7 @@ export function openFocusModal(category, store) {
   let intervalId = null;
   let ended = false;
   let noteStepSeconds = 0;
+  let sessionLog = null;
 
   function totalForPhase() {
     return clock.snapshot().phase === 'work' ? category.timerWorkSec : category.timerBreakSec;
@@ -95,6 +96,7 @@ export function openFocusModal(category, store) {
         workSec: category.timerWorkSec,
         breakSec: category.timerBreakSec,
       });
+      sessionLog = store.beginSessionLog({ categoryId: category.id, intent: sessionIntent });
       emit({ type: 'start', categoryId: category.id });
       renderShell();
       startInterval();
@@ -256,6 +258,7 @@ export function openFocusModal(category, store) {
     }
     stopInterval();
     removeClockListeners();
+    store.discardSessionLog(sessionLog?.id);
     emit({ type: 'discard', categoryId: category.id });
     overlay.remove();
   }
@@ -313,6 +316,8 @@ export function openFocusModal(category, store) {
       note,
       intent: sessionIntent,
       completed,
+      logId: sessionLog?.id,
+      startedAt: sessionLog?.startedAt,
     });
     emit({ type: 'end', categoryId: category.id, result });
 

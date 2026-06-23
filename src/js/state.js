@@ -6,6 +6,7 @@
 import {
   uid,
   todayKey,
+  dateKeyFromIso,
   updateStreakForToday,
   dailyMissionStatus,
   applyXp,
@@ -251,12 +252,14 @@ class Store {
 
   /** Log a finished session against a category: adds minutes/count, rolls
    * coins, recomputes goal-met / streaks / perfect-day / level for today. */
-  logSession({ categoryId, seconds, count, note, intent, completed }) {
+  logSession({ categoryId, seconds, count, note, intent, completed, logId, startedAt }) {
     let result = { coinsEarned: 0, leveledUp: false, perfectDayJustHit: false, streakNow: 0 };
     this.mutate((data) => {
       const category = data.categories.find((c) => c.id === categoryId);
       if (!category) return;
       const today = todayKey();
+      const endedAt = new Date().toISOString();
+      const sessionStartedAt = startedAt || new Date(Date.now() - (seconds || 0) * 1000).toISOString();
       const day = ensureDayShape(data, today);
       const dayMode = dayModeById(data, day.plan?.modeId || defaultModeId(data));
       const wasPerfectBefore = dailyMissionStatus(day, data.categories, dayMode).complete;
@@ -268,10 +271,11 @@ class Store {
       const minutesAdded = Math.round((seconds || 0) / 60);
       prog.minutes += minutesAdded;
       prog.count += count || 0;
+      const sessionId = uid('sess');
       prog.sessions.push({
-        id: uid('sess'),
-        startedAt: new Date(Date.now() - (seconds || 0) * 1000).toISOString(),
-        endedAt: new Date().toISOString(),
+        id: sessionId,
+        startedAt: sessionStartedAt,
+        endedAt,
         durationSec: seconds || 0,
         count: count || 0,
         note: note || '',
@@ -316,16 +320,30 @@ class Store {
         result.perfectDayJustHit = true;
       }
 
-      if (note && note.trim()) {
-        data.worklog.unshift({
-          id: uid('log'),
-          date: today,
-          categoryId,
-          note: note.trim(),
-          intent: intent || '',
-          completed: !!completed,
-          createdAt: new Date().toISOString(),
-        });
+      // Every completed session becomes a structured log row, even when the
+      // wrap-up note is blank, so the Log view can rebuild the full day.
+      const existingLog = logId ? data.worklog.find((entry) => entry.id === logId) : null;
+      const finishedLog = {
+        id: existingLog?.id || uid('log'),
+        type: 'session',
+        status: 'completed',
+        date: dateKeyFromIso(sessionStartedAt),
+        sessionId,
+        categoryId,
+        startedAt: sessionStartedAt,
+        endedAt,
+        durationSec: seconds || 0,
+        count: count || 0,
+        note: (note || '').trim(),
+        intent: intent || '',
+        completed: !!completed,
+        createdAt: existingLog?.createdAt || sessionStartedAt,
+        updatedAt: endedAt,
+      };
+      if (existingLog) {
+        Object.assign(existingLog, finishedLog);
+      } else {
+        data.worklog.unshift(finishedLog);
       }
 
       result.coinsEarned = coins;
@@ -333,6 +351,47 @@ class Store {
       result.streakNow = newCatStreak.current;
     });
     return result;
+  }
+
+  /** Create a log row when focus actually starts. The timer later completes
+   * this same row, which makes active sessions visible immediately. */
+  beginSessionLog({ categoryId, intent }) {
+    const startedAt = new Date().toISOString();
+    const logEntry = {
+      id: uid('log'),
+      type: 'session',
+      status: 'active',
+      date: dateKeyFromIso(startedAt),
+      categoryId,
+      startedAt,
+      endedAt: null,
+      durationSec: 0,
+      count: 0,
+      note: '',
+      intent: intent || '',
+      completed: false,
+      createdAt: startedAt,
+      updatedAt: startedAt,
+    };
+    this.mutate((data) => {
+      data.worklog.unshift(logEntry);
+    });
+    return logEntry;
+  }
+
+  /** Discarded starts stay visible as cancelled work, but never award time,
+   * counts, coins, XP, or streak progress. */
+  discardSessionLog(logId) {
+    if (!logId) return;
+    const endedAt = new Date().toISOString();
+    this.mutate((data) => {
+      const entry = data.worklog.find((l) => l.id === logId);
+      if (!entry || entry.status !== 'active') return;
+      entry.status = 'discarded';
+      entry.endedAt = endedAt;
+      entry.durationSec = Math.max(0, Math.round((new Date(endedAt) - new Date(entry.startedAt || entry.createdAt)) / 1000));
+      entry.updatedAt = endedAt;
+    });
   }
 
   /** Manually adjust today's count for a category without a timer session
@@ -419,6 +478,26 @@ function backfillFlexibleGoals(data) {
     if (!day.plan.customOverrides) day.plan.customOverrides = {};
   }
 }
+
+function backfillStructuredWorklog(data) {
+  data.worklog = (data.worklog || []).map((entry) => {
+    if (entry.type) return entry;
+    const createdAt = entry.createdAt || new Date().toISOString();
+    return {
+      ...entry,
+      type: 'note',
+      status: 'completed',
+      startedAt: entry.startedAt || createdAt,
+      endedAt: entry.endedAt || createdAt,
+      durationSec: entry.durationSec || 0,
+      count: entry.count || 0,
+      intent: entry.intent || '',
+      completed: !!entry.completed,
+      updatedAt: entry.updatedAt || createdAt,
+    };
+  });
+}
+
 function migrate(data) {
   // Single version today; this is the seam for future schema migrations
   // so old local backups never silently corrupt on upgrade.
@@ -434,6 +513,7 @@ function migrate(data) {
   if (typeof data.profile.stars !== 'number') data.profile.stars = 0;
   if (typeof data.settings.launchOnStartup !== 'boolean') data.settings.launchOnStartup = true;
   backfillFlexibleGoals(data);
+  backfillStructuredWorklog(data);
   return data;
 }
 
