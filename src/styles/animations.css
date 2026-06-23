@@ -93,6 +93,16 @@
   animation: pulse-line-draw 2.4s linear infinite;
 }
 
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes glow-breathe {
   0%,
   100% {

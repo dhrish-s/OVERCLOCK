@@ -713,6 +713,88 @@
    Work log entries
 --------------------------------------------------------------------- */
 
+.log-filterbar {
+  margin-bottom: 14px;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  background: var(--panel);
+}
+
+.log-hour-field {
+  width: 104px;
+}
+
+.log-summary-grid {
+  margin-bottom: 16px;
+}
+
+.log-summary-grid .card-tight {
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+}
+
+.log-timeline-card {
+  margin-bottom: 16px;
+}
+
+.timeline-grid {
+  display: grid;
+  gap: 5px;
+}
+
+.timeline-hour {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+}
+
+.timeline-hour.has-work .timeline-label {
+  color: var(--ink);
+}
+
+.timeline-label,
+.timeline-min {
+  font-size: 10.5px;
+  color: var(--mute);
+}
+
+.timeline-min {
+  text-align: right;
+}
+
+.timeline-track {
+  position: relative;
+  height: 16px;
+  border-radius: var(--r-chip);
+  background: var(--void);
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+}
+
+.timeline-block {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  min-width: 3px;
+  border-radius: 2px;
+  background: var(--block-color);
+  box-shadow: 0 0 8px rgba(255, 180, 84, 0.18);
+}
+
+.timeline-block.active {
+  animation: pulse-soft 1.2s ease-in-out infinite;
+}
+
+.timeline-block.discarded {
+  opacity: 0.35;
+  background: var(--mute-2);
+  box-shadow: none;
+}
+
 .log-entry {
   display: flex;
   gap: 12px;
@@ -730,6 +812,13 @@
   flex-shrink: 0;
   padding-top: 2px;
 }
+.log-entry .log-time {
+  font-size: 11.5px;
+  color: var(--mute);
+  width: 132px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
 .log-entry .log-tag {
   display: inline-flex;
   align-items: center;
@@ -742,6 +831,20 @@
 .log-entry .log-note {
   font-size: 13px;
   line-height: 1.5;
+}
+.log-entry .log-intent {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+.log-entry.timeline-entry.active {
+  background: rgba(255, 180, 84, 0.04);
+}
+.log-entry.timeline-entry.discarded .log-note,
+.log-entry.timeline-entry.discarded .log-intent {
+  color: var(--mute-2);
 }
 
 /* ---------------------------------------------------------------------
