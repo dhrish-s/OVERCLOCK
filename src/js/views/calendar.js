@@ -6,7 +6,7 @@
 
 import { icon } from './../icons.js';
 import { escapeHtml, fmtDateLong } from './../dom.js';
-import { dateKey, addDays, todayKey, monthMatrix, progressForCategory, formatMinutesShort } from './../logic.js';
+import { dateKey, addDays, todayKey, monthMatrix, progressForCategory, formatMinutesShort, worklogEntriesForDate, formatClockTime } from './../logic.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -96,7 +96,7 @@ export function render(root, store) {
     const data = store.data;
     const day = data.days[selectedKey];
     const cats = store.activeCategories();
-    const logsForDay = data.worklog.filter((l) => l.date === selectedKey);
+    const logsForDay = worklogEntriesForDate(data.worklog, selectedKey);
 
     const rows = cats
       .map((c) => {
@@ -113,13 +113,18 @@ export function render(root, store) {
       ? logsForDay
           .map((l) => {
             const cat = store.getCategory(l.categoryId);
+            const text = l.note || l.intent || (l.status === 'active' ? 'Session in progress' : 'Session logged');
+            const time = `${formatClockTime(l.startedAt)}${l.endedAt ? ` - ${formatClockTime(l.endedAt)}` : ' - now'}`;
             return `<div class="log-entry" style="padding:8px 0">
               <div style="width:18px;color:${cat ? cat.color : 'var(--mute)'}">${icon(cat ? cat.icon : 'book', 14)}</div>
-              <div class="log-note">${escapeHtml(l.note)}</div>
+              <div style="flex:1;min-width:0">
+                <div class="mono mute" style="font-size:11px;margin-bottom:2px">${escapeHtml(time)}</div>
+                <div class="log-note">${escapeHtml(text)}</div>
+              </div>
             </div>`;
           })
           .join('')
-      : `<div class="mute" style="font-size:12.5px;padding:8px 0">No notes logged this day.</div>`;
+      : `<div class="mute" style="font-size:12.5px;padding:8px 0">No sessions logged this day.</div>`;
 
     return `
       <div class="row between" style="margin-bottom:10px">
@@ -127,7 +132,7 @@ export function render(root, store) {
         ${day?.perfectDay ? `<span class="badge done">${icon('star', 12)} PERFECT DAY</span>` : ''}
       </div>
       ${rows || `<div class="mute" style="font-size:12.5px">No categories tracked.</div>`}
-      <div style="margin-top:14px;font-weight:600;font-size:13px">Notes</div>
+      <div style="margin-top:14px;font-weight:600;font-size:13px">Sessions</div>
       ${logsHtml}
     `;
   }
