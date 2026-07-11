@@ -426,6 +426,47 @@ class Store {
     return { ok: true, entry };
   }
 
+  /** Edit a completed worklog row without changing rewards or streak data. */
+  updateWorklogEntry(logId, { categoryId, startedAt, endedAt, intent, note, count, completed = true }) {
+    const entry = this.data.worklog.find((item) => item.id === logId);
+    if (!entry) return { ok: false, error: 'This worklog entry no longer exists.' };
+    if (entry.status === 'active') return { ok: false, error: 'End the active session before editing it.' };
+    const start = new Date(startedAt);
+    const end = new Date(endedAt);
+    if (!categoryId || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      return { ok: false, error: 'Choose a category and a valid start/end time.' };
+    }
+
+    const updatedAt = new Date().toISOString();
+    this.mutate((data) => {
+      const current = data.worklog.find((item) => item.id === logId);
+      Object.assign(current, {
+        categoryId,
+        date: dateKeyFromIso(start.toISOString()),
+        startedAt: start.toISOString(),
+        endedAt: end.toISOString(),
+        durationSec: Math.round((end - start) / 1000),
+        count: Math.max(0, Number(count) || 0),
+        intent: (intent || '').trim(),
+        note: (note || '').trim(),
+        completed: !!completed,
+        updatedAt,
+      });
+    });
+    return { ok: true, entry: this.data.worklog.find((item) => item.id === logId) };
+  }
+
+  /** Delete a finished timeline row while leaving earned rewards unchanged. */
+  deleteWorklogEntry(logId) {
+    const entry = this.data.worklog.find((item) => item.id === logId);
+    if (!entry) return { ok: false, error: 'This worklog entry no longer exists.' };
+    if (entry.status === 'active') return { ok: false, error: 'End the active session before deleting it.' };
+    this.mutate((data) => {
+      data.worklog = data.worklog.filter((item) => item.id !== logId);
+    });
+    return { ok: true };
+  }
+
   /** Manually adjust today's count for a category without a timer session
    * (e.g. logging one more job application sent outside a focus block). */
   addQuickCount({ categoryId, amount, note }) {
