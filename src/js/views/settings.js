@@ -50,7 +50,7 @@ function openConfirmModal({ title, body, confirmLabel = 'Confirm', danger = fals
 // Category add/edit modal
 // ---------------------------------------------------------------------
 
-function openCategoryModal(store, existing, onDone) {
+function openCategoryModal(store, existing) {
   const isEdit = !!existing;
   const draft = existing
     ? { ...existing }
@@ -188,7 +188,6 @@ function openCategoryModal(store, existing, onDone) {
       else data.categories.push(updated);
     });
     close();
-    if (onDone) onDone();
   });
 }
 
@@ -196,7 +195,7 @@ function openCategoryModal(store, existing, onDone) {
 // Reward add/edit modal
 // ---------------------------------------------------------------------
 
-function openRewardModal(store, tier, existing, onDone) {
+function openRewardModal(store, tier, existing) {
   const isEdit = !!existing;
   const unit = tier === 'big' ? 'stars' : 'coins';
   const draft = existing ? { ...existing } : { id: uid('r'), label: '', tier, cost: tier === 'big' ? 1 : 30, disabled: false };
@@ -234,7 +233,6 @@ function openRewardModal(store, tier, existing, onDone) {
       else pool.push(updated);
     });
     close();
-    if (onDone) onDone();
   });
 }
 
@@ -400,14 +398,14 @@ export function render(root, store) {
     `;
 
     body.querySelector('#add-category').addEventListener('click', () => {
-      openCategoryModal(store, null, () => paint());
+      openCategoryModal(store, null);
     });
 
     body.querySelectorAll('[data-cat-row]').forEach((row) => {
       const id = row.dataset.catRow;
       const cat = data.categories.find((c) => c.id === id);
       row.querySelector('[data-action="edit"]').addEventListener('click', () => {
-        openCategoryModal(store, cat, () => paint());
+        openCategoryModal(store, cat);
       });
       row.querySelector('[data-action="archive"]').addEventListener('click', () => {
         store.mutate((d) => {
@@ -462,7 +460,7 @@ export function render(root, store) {
         });
       });
       row.querySelector('[data-action="edit"]').addEventListener('click', () => {
-        openRewardModal(store2, tier, reward, () => paint());
+        openRewardModal(store2, tier, reward);
       });
       row.querySelector('[data-action="delete"]').addEventListener('click', () => {
         openConfirmModal({
@@ -481,7 +479,7 @@ export function render(root, store) {
       });
     });
     body.querySelector(`#add-${tier}-reward`).addEventListener('click', () => {
-      openRewardModal(store2, tier, null, () => paint());
+      openRewardModal(store2, tier, null);
     });
   }
 
@@ -561,8 +559,8 @@ export function render(root, store) {
       }
       const outcome = store.importData(picked.data);
       if (outcome.ok) {
-        flash(body.querySelector('#import-backup').parentElement, 'Backup imported - you\'re all set.');
-        paint();
+        const importButton = root.querySelector('#import-backup');
+        if (importButton) flash(importButton.parentElement, 'Backup imported - you\'re all set.');
       } else {
         flash(body.querySelector('#import-backup').parentElement, outcome.error);
       }
@@ -586,7 +584,6 @@ export function render(root, store) {
         onConfirm: () => {
           store.resetAll();
           resetConfirmText = '';
-          paint();
         },
       });
     });

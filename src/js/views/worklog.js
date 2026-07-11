@@ -248,7 +248,6 @@ export function render(root, store) {
       }
       selectedDate = result.entry.date;
       close();
-      paint();
     });
     setTimeout(() => modal.querySelector('#manual-intent')?.focus(), 0);
   }
@@ -386,8 +385,8 @@ export function render(root, store) {
   paint();
   const unsub = store.subscribe(paint);
   const liveRefresh = setInterval(() => {
-    if (store.data.worklog.some((entry) => entry.status === 'active')) paint();
-  }, 30000);
+    if (!document.hidden && store.data.worklog.some((entry) => entry.status === 'active')) paint();
+  }, 60000);
   return () => {
     clearInterval(liveRefresh);
     unsub();

@@ -80,7 +80,7 @@ function updateActiveSessionMini() {
 
 function syncActiveSessionTicker() {
   if (activeSessionTicker) clearInterval(activeSessionTicker);
-  activeSessionTicker = getActiveSessionInfo() ? setInterval(updateActiveSessionMini, 5000) : null;
+  activeSessionTicker = getActiveSessionInfo() && !document.hidden ? setInterval(updateActiveSessionMini, 5000) : null;
 }
 
 function renderNav() {
@@ -131,6 +131,10 @@ async function init() {
   buildShell();
   store.subscribe(updateHeaderStats);
   onSessionEvent(() => {
+    updateActiveSessionMini();
+    syncActiveSessionTicker();
+  });
+  document.addEventListener('visibilitychange', () => {
     updateActiveSessionMini();
     syncActiveSessionTicker();
   });

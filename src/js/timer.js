@@ -254,6 +254,7 @@ export function openFocusModal(category, store) {
   }
 
   function startInterval() {
+    if (intervalId) return;
     intervalId = setInterval(tick, 1000);
   }
 
@@ -263,7 +264,12 @@ export function openFocusModal(category, store) {
   }
 
   function syncFromLaptopClock() {
+    if (document.hidden) {
+      stopInterval();
+      return;
+    }
     tick();
+    startInterval();
   }
 
   function addClockListeners() {
