@@ -1,111 +1,184 @@
 # Overclock
 
-Overclock is a small Windows desktop app I made for fun, mostly to push myself to stay consistent.
+Overclock is a fast, local-first Windows focus tracker for turning a busy day into a clear record of what actually happened.
 
-It started as a simple tracker. Then it became actually useful: a local focus console for LeetCode, GitHub work, job applications, system design, networking, notes, streaks, coins, and daily momentum.
+Start a focused task, backfill work you forgot to track, inspect every hour of the day, and build momentum with streaks, coins, stars, and rewards. No account, cloud service, subscription, or telemetry required.
 
-No accounts. No cloud. No telemetry. Just your laptop, your goals, and a tiny bit of pressure.
+## Highlights
 
-## What It Does
+- Custom categories for LeetCode, applications, system design, open source, or anything else
+- Stopwatch, countdown, and Pomodoro focus sessions
+- One active timer at a time, with a live session bar in the title bar
+- Automatic worklog entries when a session starts
+- Manual entries for forgotten or one-off work
+- Quick templates for Gym, Class, Reading, Interview prep, and Errands
+- Editable and removable finished worklog entries
+- A readable 24-hour timesheet with tasks shown inside hourly rows
+- Idle-gap detection between tracked work blocks
+- Flexible day modes with baseline and focus targets
+- Calendar history, statistics, weekly review, streaks, coins, stars, and rewards
+- Windows tray support, reminders, and optional launch at startup
+- Local JSON storage with rotating backups
 
-- Tracks daily work across customizable categories
-- Lets each day have a different mode, like LeetCode Heavy, GitHub Heavy, Job Hunt Heavy, or Balanced
-- Keeps minimum baselines so you do not completely avoid important areas
-- Runs focus sessions with intent notes and completion checks
-- Shows streaks, coins, stars, stats, calendar progress, and weekly review
-- Stores everything locally on your Windows machine
-- Can run in the system tray with reminders
+## Requirements
 
-## Run Locally
+- Windows 10 or Windows 11, 64-bit
+- [Node.js](https://nodejs.org/) with npm for development and local builds
+- Git if you are cloning the repository
 
-You need Node.js installed first.
+Using the current Node.js LTS release is recommended.
 
-Then clone the project and run:
+## Get The Code
+
+Open PowerShell and run:
 
 ```powershell
+git clone https://github.com/dhrish-s/Activity-Rewarder.git
+cd Activity-Rewarder
 npm install
+```
+
+`npm install` downloads the Electron development tools used by the project. You normally only need to run it after cloning or when dependencies change.
+
+## Run The App
+
+Start the normal local app:
+
+```powershell
 npm start
 ```
 
-That opens the app in development mode.
+Start it with the development flag:
 
-To run the tests:
+```powershell
+npm run dev
+```
+
+Both commands open Electron directly from the source folder. They do not install Overclock into Windows.
+
+## Run Tests
+
+Run the logic test suite:
 
 ```powershell
 npm test
 ```
 
-## Build The Windows App
+A successful run ends with output similar to:
 
-To create the Windows installer:
-
-```powershell
-npm install
-npm run dist
+```text
+89 passed, 0 failed
 ```
 
-The installer will be created inside:
+## Build Without Installing
 
-```powershell
-dist\
-```
-
-Look for a file like:
-
-```powershell
-Overclock Setup 1.0.0.exe
-```
-
-Run that installer to install Overclock on your laptop.
-
-## Quick App Test Without Installing
-
-If you just want to build and open the app folder directly:
+Create an unpacked Windows build:
 
 ```powershell
 npm run dist:dir
 ```
 
-Then open:
+Then launch:
 
-```powershell
+```text
 dist\win-unpacked\Overclock.exe
 ```
 
-This is useful when you want to test the packaged app without running the installer.
+This is the quickest way to test the real packaged application without running an installer.
 
-## Important Note
+## Build And Install On Windows
 
-`npm run dist` builds the installer. It does not install the app automatically.
-
-After the command finishes, you still need to open the generated `.exe` from the `dist` folder.
-
-## Where Your Data Lives
-
-Your data is stored locally here:
+Create the Windows installer:
 
 ```powershell
+npm run dist
+```
+
+The installer is written to the `dist` folder and will have a name similar to:
+
+```text
+Overclock Setup 1.0.0.exe
+```
+
+To install:
+
+1. Open the `dist` folder.
+2. Run `Overclock Setup 1.0.0.exe`.
+3. Choose the installation folder when prompted.
+4. Finish setup and launch Overclock from the desktop or Start menu shortcut.
+
+The installer is not currently code-signed. Windows SmartScreen may show an Unknown Publisher message for a personal build. If you built the project yourself and trust it, select **More info**, then **Run anyway**.
+
+## Command Reference
+
+| Command | Purpose |
+| --- | --- |
+| `npm install` | Install project dependencies |
+| `npm start` | Run Electron from source |
+| `npm run dev` | Run Electron with the development flag |
+| `npm test` | Run the logic tests |
+| `npm run dist:dir` | Build an unpacked Windows app for quick testing |
+| `npm run dist` | Build the Windows installer |
+
+## Local Data And Backups
+
+Overclock stores its data locally in Electron's Windows user-data directory:
+
+```text
 %APPDATA%\overclock-tracker\overclock-data.json
 ```
 
-Backups are kept here:
+Rotating backups are stored in:
 
-```powershell
+```text
 %APPDATA%\overclock-tracker\backups\
 ```
 
-So updating or rebuilding the app should not erase your progress.
+You can also export and import a full JSON backup from **Settings > Data**. Rebuilding or reinstalling the app should not remove the user-data folder, but exporting a backup before major system changes is still a good habit.
 
-## Windows Warning
+## Everyday Workflow
 
-The app is not code-signed, so Windows may show an "Unknown Publisher" warning.
+1. Pick a day mode based on what matters today.
+2. Start a category session and write a concrete intent.
+3. Finish the session and record what you completed.
+4. Add forgotten or offline work manually when needed.
+5. Review the hourly Work Log to spot productive blocks and idle gaps.
+6. Keep the streak alive and spend earned rewards without guilt.
 
-For a personal/local build, that is expected. Click **More info** and then **Run anyway** if you trust the build.
+Closing the main window keeps Overclock available in the Windows tray so reminders can continue. Use **Quit** from the tray menu when you want to fully stop the app.
 
-## Why I Made It
+## Troubleshooting
 
-I wanted something simple that could push me without becoming another complicated productivity system.
+### `npm` is not recognized
 
-Some days should be LeetCode-heavy. Some days should be GitHub-heavy. Some days are job-search days. But every day should still keep the basics alive.
+Install Node.js, close PowerShell, open it again, and verify:
 
-That is the idea behind Overclock: flexible days, minimum baselines, visible progress, and enough game-like pressure to make consistency feel a little more fun.
+```powershell
+node --version
+npm --version
+```
+
+### PowerShell blocks `npm.ps1`
+
+Use the Windows command shim:
+
+```powershell
+npm.cmd install
+npm.cmd start
+```
+
+The same form works for every command, such as `npm.cmd test` or `npm.cmd run dist`.
+
+### The build cannot download Electron
+
+Check the internet connection, VPN, proxy, firewall, or antivirus rules, then retry the build. Electron Builder may need to download the Windows Electron runtime during packaging.
+
+### The app appears to stay open after closing
+
+That is expected tray behavior. Open it again from the tray icon, or choose **Quit** from the tray menu to stop it completely.
+
+## Project Philosophy
+
+Overclock should help you notice your day, not become another job to maintain. It stays compact, responsive, private, and useful in the background, while still making progress feel satisfying.
+
+Build momentum. Keep the record honest. Then go claim a reward.
