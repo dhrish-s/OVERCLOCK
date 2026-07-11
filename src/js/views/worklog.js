@@ -16,6 +16,8 @@ import {
   worklogIdleGaps,
 } from './../logic.js';
 
+const MANUAL_TASK_TEMPLATES = ['Gym', 'Class', 'Reading', 'Interview prep', 'Errands'];
+
 function csvEscape(val) {
   const s = String(val ?? '');
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -97,7 +99,10 @@ function detailsHtml(entries, store) {
         <div style="flex:1;min-width:0">
           <div class="row between wrap" style="gap:8px;margin-bottom:4px">
             <div class="log-tag" style="color:${color}">${icon(cat ? cat.icon : 'book', 12)}<span>${escapeHtml(cat ? cat.name : 'Unknown')}</span></div>
-            <span class="badge ${entry.status === 'active' ? 'active' : entry.status === 'discarded' ? 'idle' : entry.type === 'manual' ? 'manual' : entry.completed ? 'done' : 'idle'}">${statusLabel(entry)}</span>
+            <div class="row log-entry-actions">
+              <span class="badge ${entry.status === 'active' ? 'active' : entry.status === 'discarded' ? 'idle' : entry.type === 'manual' ? 'manual' : entry.completed ? 'done' : 'idle'}">${statusLabel(entry)}</span>
+              ${entry.status !== 'active' ? `<button class="btn btn-ghost btn-icon edit-log-entry" data-log-id="${entry.id}" data-tip="Edit entry">${icon('edit', 13)}</button><button class="btn btn-ghost btn-icon delete-log-entry" data-log-id="${entry.id}" data-tip="Delete entry">${icon('trash', 13)}</button>` : ''}
+            </div>
           </div>
           ${entry.intent ? `<div class="log-intent">${escapeHtml(entry.intent)}</div>` : ''}
           <div class="log-note">${escapeHtml(entryText(entry))}</div>
@@ -128,6 +133,11 @@ function localDateTimeIso(dateKey, timeValue) {
   return new Date(y, m - 1, d, hh || 0, mm || 0).toISOString();
 }
 
+function timeInputValue(iso) {
+  const value = new Date(iso);
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
 export function render(root, store) {
   let selectedDate = todayKey();
   let search = '';
@@ -135,9 +145,13 @@ export function render(root, store) {
   let fromHour = 0;
   let toHour = 24;
 
-  function openManualEntryModal() {
-    const cats = store.activeCategories();
-    const defaults = defaultManualTimes(selectedDate);
+  function openManualEntryModal(entry = null) {
+    const editing = !!entry;
+    const cats = editing ? store.data.categories : store.activeCategories();
+    const entryDate = entry?.date || selectedDate;
+    const defaults = entry
+      ? { startTime: timeInputValue(entry.startedAt), endTime: timeInputValue(entry.endedAt) }
+      : defaultManualTimes(selectedDate);
     const overlay = document.createElement('div');
     overlay.className = 'overlay fade-in';
     const modal = document.createElement('div');
@@ -152,20 +166,20 @@ export function render(root, store) {
     modal.innerHTML = `
       <div class="row between" style="margin-bottom:4px">
         <div>
-          <div class="modal-title">Add manual entry</div>
-          <div class="modal-sub">Backfill forgotten work into the timeline without changing coins or streaks.</div>
+          <div class="modal-title">${editing ? 'Edit worklog entry' : 'Add manual entry'}</div>
+          <div class="modal-sub">Times use the laptop clock. Worklog edits do not change coins or streaks.</div>
         </div>
         <button class="btn btn-ghost btn-icon" id="manual-close" aria-label="Close">${icon('x', 16)}</button>
       </div>
       <div class="grid grid-cols-2" style="margin-bottom:12px">
         <div class="field">
           <label for="manual-date">Date</label>
-          <input class="input mono" id="manual-date" type="date" value="${selectedDate}"/>
+          <input class="input mono" id="manual-date" type="date" value="${entryDate}"/>
         </div>
         <div class="field">
           <label for="manual-category">Category</label>
           <select class="select" id="manual-category">
-            ${cats.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+            ${cats.map((c) => `<option value="${c.id}" ${entry?.categoryId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
           </select>
         </div>
         <div class="field">
@@ -177,26 +191,29 @@ export function render(root, store) {
           <input class="input mono" id="manual-end" type="time" value="${defaults.endTime}"/>
         </div>
       </div>
+      <div class="manual-template-row" aria-label="Task templates">
+        ${MANUAL_TASK_TEMPLATES.map((template) => `<button class="btn manual-template" data-template="${escapeHtml(template)}">${escapeHtml(template)}</button>`).join('')}
+      </div>
       <div class="field" style="margin-bottom:12px">
         <label for="manual-intent">Task</label>
-        <input class="input" id="manual-intent" placeholder="e.g. Reviewed system design notes, helped with a resume, read docs..."/>
+        <input class="input" id="manual-intent" value="${escapeHtml(entry?.intent || '')}" placeholder="e.g. Reviewed system design notes, helped with a resume, read docs..."/>
       </div>
       <div class="grid grid-cols-2" style="margin-bottom:12px">
         <div class="field">
           <label for="manual-count">Count</label>
-          <input class="input mono" id="manual-count" type="number" min="0" step="1" value="0"/>
+          <input class="input mono" id="manual-count" type="number" min="0" step="1" value="${entry?.count || 0}"/>
         </div>
         <label class="row" style="gap:8px;align-items:center;padding-top:22px">
-          <input type="checkbox" id="manual-completed" checked/> Completed
+          <input type="checkbox" id="manual-completed" ${entry?.completed === false ? '' : 'checked'}/> Completed
         </label>
       </div>
       <div class="field">
         <label for="manual-note">Note</label>
-        <textarea class="textarea" id="manual-note" placeholder="What did you actually do?"></textarea>
+        <textarea class="textarea" id="manual-note" placeholder="What did you actually do?">${escapeHtml(entry?.note || '')}</textarea>
       </div>
       <div class="modal-actions">
         <button class="btn" id="manual-cancel">Cancel</button>
-        <button class="btn btn-primary" id="manual-save">${icon('plus', 14)} Add entry</button>
+        <button class="btn btn-primary" id="manual-save">${icon(editing ? 'check' : 'plus', 14)} ${editing ? 'Save changes' : 'Add entry'}</button>
       </div>
     `;
 
@@ -205,11 +222,17 @@ export function render(root, store) {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) close();
     });
+    modal.querySelectorAll('.manual-template').forEach((button) => {
+      button.addEventListener('click', () => {
+        modal.querySelector('#manual-intent').value = button.dataset.template;
+        modal.querySelector('#manual-intent').focus();
+      });
+    });
     modal.querySelector('#manual-save').addEventListener('click', () => {
       const dateValue = modal.querySelector('#manual-date').value || selectedDate;
       const startTime = modal.querySelector('#manual-start').value;
       const endTime = modal.querySelector('#manual-end').value;
-      const result = store.addManualWorklogEntry({
+      const values = {
         categoryId: modal.querySelector('#manual-category').value,
         startedAt: localDateTimeIso(dateValue, startTime),
         endedAt: localDateTimeIso(dateValue, endTime),
@@ -217,7 +240,8 @@ export function render(root, store) {
         note: modal.querySelector('#manual-note').value,
         count: modal.querySelector('#manual-count').value,
         completed: modal.querySelector('#manual-completed').checked,
-      });
+      };
+      const result = editing ? store.updateWorklogEntry(entry.id, values) : store.addManualWorklogEntry(values);
       if (!result.ok) {
         window.alert(result.error);
         return;
@@ -309,7 +333,20 @@ export function render(root, store) {
       selectedDate = e.target.value || todayKey();
       paint();
     });
-    root.querySelector('#add-manual-log').addEventListener('click', openManualEntryModal);
+    root.querySelector('#add-manual-log').addEventListener('click', () => openManualEntryModal());
+    root.querySelectorAll('.edit-log-entry').forEach((button) => {
+      button.addEventListener('click', () => {
+        const entry = store.data.worklog.find((item) => item.id === button.dataset.logId);
+        if (entry) openManualEntryModal(entry);
+      });
+    });
+    root.querySelectorAll('.delete-log-entry').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!window.confirm('Delete this worklog entry?')) return;
+        const result = store.deleteWorklogEntry(button.dataset.logId);
+        if (!result.ok) window.alert(result.error);
+      });
+    });
     const searchInput = root.querySelector('#log-search');
     searchInput.addEventListener(
       'input',
