@@ -13,6 +13,7 @@ import {
   worklogEntriesForDate,
   filterWorklogEntries,
   buildHourlyTimeline,
+  worklogIdleGaps,
 } from './../logic.js';
 
 function csvEscape(val) {
@@ -55,13 +56,26 @@ function timelineHtml(timeline, store) {
           return `<div class="timeline-block ${entry.status}" style="left:${entry.offsetPct}%;width:${entry.widthPct}%;--block-color:${color}" data-tip="${label} - ${escapeHtml(entryText(entry))}"></div>`;
         })
         .join('');
+      const taskLabels = hour.entries
+        .map((entry) => {
+          const cat = store.getCategory(entry.categoryId);
+          return `<span class="timeline-task"><span class="timeline-task-dot" style="--block-color:${cat?.color || 'var(--mute)'}"></span>${escapeHtml(cat?.name || 'Unknown')}: ${escapeHtml(entryText(entry))}</span>`;
+        })
+        .join('');
       return `<div class="timeline-hour ${hour.entries.length ? 'has-work' : ''}">
         <div class="timeline-label mono">${hour.label}</div>
-        <div class="timeline-track">${blocks}</div>
+        <div class="timeline-cell"><div class="timeline-track">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
         <div class="timeline-min mono">${hour.totalMinutes ? `${hour.totalMinutes}m` : ''}</div>
       </div>`;
     })
     .join('');
+}
+
+function idleGapsHtml(gaps) {
+  if (!gaps.length) return '';
+  return `<div class="idle-gap-list">${gaps
+    .map((gap) => `<div class="idle-gap">${icon('pulse', 13)}<span>No tracked work from ${escapeHtml(formatClockTime(gap.startedAt))} to ${escapeHtml(formatClockTime(gap.endedAt))}</span><span class="mono mute">${formatMinutesShort(gap.durationMinutes)}</span></div>`)
+    .join('')}</div>`;
 }
 
 function detailsHtml(entries, store) {
@@ -227,6 +241,7 @@ export function render(root, store) {
     const completed = entries.filter((entry) => entry.status === 'completed');
     const totalMinutes = completed.reduce((sum, entry) => sum + Math.round((entry.durationSec || 0) / 60), 0);
     const timeline = buildHourlyTimeline(entries, selectedDate);
+    const idleGaps = worklogIdleGaps(entries.filter((entry) => entry.status !== 'discarded'), selectedDate);
 
     root.innerHTML = `
       <div class="view fade-in">
@@ -274,6 +289,7 @@ export function render(root, store) {
             <div style="font-weight:600;font-size:13.5px">24-hour timeline</div>
             <div class="mute mono" style="font-size:11.5px">Laptop local time</div>
           </div>
+          ${idleGapsHtml(idleGaps)}
           <div class="timeline-grid">${timelineHtml(timeline, store)}</div>
         </div>
 

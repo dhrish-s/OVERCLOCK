@@ -397,3 +397,33 @@ export function buildHourlyTimeline(entries, key, now = new Date()) {
     return { hour, label: `${String(hour).padStart(2, '0')}:00`, entries: hourEntries, totalMinutes };
   });
 }
+
+export function worklogIdleGaps(entries, key, { minMinutes = 30 } = {}, now = new Date()) {
+  const { start, end } = dayBounds(key);
+  const dayStartMs = start.getTime();
+  const dayEndMs = end.getTime();
+  const intervals = (entries || [])
+    .map((entry) => [Math.max(dayStartMs, entryStartMs(entry)), Math.min(dayEndMs, entryEndMs(entry, now.getTime()))])
+    .filter(([intervalStart, intervalEnd]) => intervalEnd > intervalStart)
+    .sort((a, b) => a[0] - b[0]);
+  if (intervals.length < 2) return [];
+
+  const merged = [];
+  for (const interval of intervals) {
+    const previous = merged[merged.length - 1];
+    if (!previous || interval[0] > previous[1]) merged.push([...interval]);
+    else previous[1] = Math.max(previous[1], interval[1]);
+  }
+
+  const minimumMs = minMinutes * 60000;
+  return merged.slice(1).flatMap((interval, index) => {
+    const gapStart = merged[index][1];
+    const gapEnd = interval[0];
+    if (gapEnd - gapStart < minimumMs) return [];
+    return [{
+      startedAt: new Date(gapStart).toISOString(),
+      endedAt: new Date(gapEnd).toISOString(),
+      durationMinutes: Math.round((gapEnd - gapStart) / 60000),
+    }];
+  });
+}

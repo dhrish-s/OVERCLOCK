@@ -25,6 +25,7 @@ import {
   worklogEntriesForDate,
   filterWorklogEntries,
   buildHourlyTimeline,
+  worklogIdleGaps,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData } from '../src/js/state.js';
@@ -230,6 +231,18 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   const timeline = buildHourlyTimeline(dayEntries, '2026-06-17', new Date(2026, 5, 17, 12, 0));
   assertEqual(timeline[9].entries.length, 1, 'buildHourlyTimeline places an entry in its starting hour');
   assertEqual(timeline[9].totalMinutes, 45, 'buildHourlyTimeline totals minutes inside each hour');
+  const gaps = worklogIdleGaps(
+    [
+      ...dayEntries,
+      {
+        id: 'later',
+        startedAt: new Date(2026, 5, 17, 11, 0).toISOString(),
+        endedAt: new Date(2026, 5, 17, 11, 30).toISOString(),
+      },
+    ],
+    '2026-06-17'
+  );
+  assertEqual(gaps.map((gap) => gap.durationMinutes), [60], 'worklogIdleGaps reports meaningful gaps between tracked blocks');
 }
 
 // ---- month matrix ----
