@@ -79,6 +79,9 @@ function missionBoardHtml(status, dayMode) {
 function categoryCardHtml(mission, streak, today) {
   const { category, target, progress } = mission;
   const streakAlive = isStreakAlive(streak, today) && streak.current > 0;
+  const activeId = getActiveCategoryId();
+  const sessionRunning = !!activeId;
+  const buttonLabel = activeId === category.id ? 'Session running' : 'Start session';
   return `
     <div class="card category-card" data-cat-id="${category.id}">
       <div class="cat-head">
@@ -103,7 +106,7 @@ function categoryCardHtml(mission, streak, today) {
         </div>
       </div>
       <div class="cat-actions">
-        <button class="btn btn-primary btn-block start-session-btn" data-cat-id="${category.id}">${icon('play', 14)} Start session</button>
+        <button class="btn btn-primary btn-block start-session-btn" data-cat-id="${category.id}" ${sessionRunning ? 'disabled' : ''}>${icon(activeId === category.id ? 'pulse' : 'play', 14)} ${buttonLabel}</button>
       </div>
     </div>
   `;

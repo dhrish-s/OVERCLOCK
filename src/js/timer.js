@@ -18,14 +18,25 @@ export function onSessionEvent(fn) {
   return () => listeners.delete(fn);
 }
 function emit(evt) {
-  if (evt.type === 'start') activeSessionCategoryId = evt.categoryId;
-  if (evt.type === 'end' || evt.type === 'discard') activeSessionCategoryId = null;
+  if (evt.type === 'start') {
+    activeSessionCategoryId = evt.categoryId;
+    activeSessionInfo = evt.session;
+  }
+  if (evt.type === 'end' || evt.type === 'discard') {
+    activeSessionCategoryId = null;
+    activeSessionInfo = null;
+  }
   for (const fn of listeners) fn(evt);
 }
 
 let activeSessionCategoryId = null;
+let activeSessionInfo = null;
 export function getActiveCategoryId() {
   return activeSessionCategoryId;
+}
+
+export function getActiveSessionInfo() {
+  return activeSessionInfo ? { ...activeSessionInfo } : null;
 }
 
 let audioCtx = null;
@@ -48,6 +59,17 @@ function beep(freq = 880, durationMs = 180) {
 }
 
 export function openFocusModal(category, store) {
+  if (activeSessionCategoryId) {
+    const activeCategory = store.getCategory(activeSessionCategoryId);
+    showToast({
+      kind: 'info',
+      title: 'Session already running',
+      body: `End ${activeCategory?.name || 'the current session'} before starting another task.`,
+      timeout: 5000,
+    });
+    return;
+  }
+
   const soundOn = () => store.data.settings.soundEnabled !== false;
   const playBeep = (freq) => {
     if (soundOn()) beep(freq);
@@ -97,7 +119,16 @@ export function openFocusModal(category, store) {
         breakSec: category.timerBreakSec,
       });
       sessionLog = store.beginSessionLog({ categoryId: category.id, intent: sessionIntent });
-      emit({ type: 'start', categoryId: category.id });
+      emit({
+        type: 'start',
+        categoryId: category.id,
+        session: {
+          categoryId: category.id,
+          categoryName: category.name,
+          startedAt: sessionLog.startedAt,
+          intent: sessionIntent,
+        },
+      });
       renderShell();
       startInterval();
       addClockListeners();

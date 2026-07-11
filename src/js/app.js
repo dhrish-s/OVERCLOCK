@@ -7,6 +7,8 @@
 import { store } from './state.js';
 import { icon } from './icons.js';
 import { initReminderBridge } from './notifications.js';
+import { formatDuration } from './logic.js';
+import { getActiveSessionInfo, onSessionEvent } from './timer.js';
 
 import { render as renderDashboard } from './views/dashboard.js';
 import { render as renderCalendar } from './views/calendar.js';
@@ -26,6 +28,7 @@ const ROUTES = [
 
 let currentRouteId = 'dashboard';
 let currentCleanup = null;
+let activeSessionTicker = null;
 
 function buildShell() {
   document.body.innerHTML = `
@@ -33,6 +36,11 @@ function buildShell() {
       <div id="titlebar">
         <div class="brand"><span class="dot"></span>OVERCLOCK</div>
         <div class="spacer"></div>
+        <div class="active-session-mini hidden" id="active-session-mini">
+          ${icon('pulse', 13)}
+          <span class="active-session-name"></span>
+          <span class="active-session-time mono"></span>
+        </div>
         <div class="header-stat" id="stat-level" data-tip="Level">${icon('trophy', 13)}<span></span></div>
         <div class="header-stat" id="stat-coins" data-tip="Coins">${icon('coin', 13)}<span></span></div>
         <div class="header-stat" id="stat-stars" data-tip="Stars">${icon('star', 13)}<span></span></div>
@@ -56,6 +64,23 @@ function buildShell() {
 
   renderNav();
   updateHeaderStats();
+}
+
+function updateActiveSessionMini() {
+  const mini = document.getElementById('active-session-mini');
+  if (!mini) return;
+  const session = getActiveSessionInfo();
+  mini.classList.toggle('hidden', !session);
+  if (!session) return;
+  const elapsedSec = Math.max(0, Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000));
+  mini.querySelector('.active-session-name').textContent = session.intent || session.categoryName;
+  mini.querySelector('.active-session-time').textContent = formatDuration(elapsedSec);
+  mini.dataset.tip = session.intent ? session.categoryName : 'Current active session';
+}
+
+function syncActiveSessionTicker() {
+  if (activeSessionTicker) clearInterval(activeSessionTicker);
+  activeSessionTicker = getActiveSessionInfo() ? setInterval(updateActiveSessionMini, 5000) : null;
 }
 
 function renderNav() {
@@ -105,6 +130,11 @@ async function init() {
   await store.init();
   buildShell();
   store.subscribe(updateHeaderStats);
+  onSessionEvent(() => {
+    updateActiveSessionMini();
+    syncActiveSessionTicker();
+  });
+  updateActiveSessionMini();
   initReminderBridge();
   navigate('dashboard');
 }
