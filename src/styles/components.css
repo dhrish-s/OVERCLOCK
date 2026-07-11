@@ -8,18 +8,19 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--r-card);
-  padding: 16px;
+  padding: 17px;
+  box-shadow: 0 8px 24px -22px rgba(0, 0, 0, 0.9);
 }
 
 .card-raised {
   background: var(--panel-raised);
   border: 1px solid var(--border);
   border-radius: var(--r-card);
-  padding: 16px;
+  padding: 17px;
 }
 
 .card-tight {
-  padding: 12px;
+  padding: 13px 14px;
 }
 
 .card.glow-phosphor {
@@ -36,7 +37,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  height: 34px;
+  height: 36px;
   padding: 0 14px;
   border-radius: var(--r-chip);
   border: 1px solid var(--border);
@@ -45,7 +46,7 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.05s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.05s, box-shadow 0.12s;
   white-space: nowrap;
 }
 .btn:hover {
@@ -69,6 +70,7 @@
 .btn-primary:hover {
   background: #ffc578;
   border-color: #ffc578;
+  box-shadow: 0 4px 16px -8px var(--phosphor-glow);
 }
 
 .btn-danger {
@@ -91,7 +93,7 @@
 }
 
 .btn-sm {
-  height: 28px;
+  height: 30px;
   padding: 0 10px;
   font-size: 12px;
 }
@@ -156,7 +158,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
   padding: 5px 10px;
   border-radius: var(--r-chip);
   background: var(--panel-raised);
@@ -198,7 +200,7 @@
 
 /* linear variant, used for XP bar */
 .bar-track {
-  height: 7px;
+  height: 6px;
   border-radius: var(--r-pill);
   background: var(--border);
   overflow: hidden;
@@ -214,10 +216,17 @@
    Category module card
 --------------------------------------------------------------------- */
 
-.category-card {
+.card.category-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 206px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.card.category-card:hover {
+  border-color: var(--mute-2);
+  background: #181c1d;
 }
 
 .category-card .cat-head {
@@ -227,8 +236,8 @@
 }
 
 .cat-icon-wrap {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--r-chip);
   display: flex;
   align-items: center;
@@ -292,6 +301,7 @@
 .category-card .cat-actions {
   display: flex;
   gap: 8px;
+  margin-top: auto;
 }
 
 /* ---------------------------------------------------------------------
@@ -310,11 +320,12 @@
 .input,
 .select,
 .textarea {
-  background: var(--void);
+  background: #101314;
   border: 1px solid var(--border);
   border-radius: var(--r-chip);
   color: var(--ink);
-  padding: 8px 10px;
+  min-height: 36px;
+  padding: 8px 11px;
   font-size: 13px;
   font-family: var(--font-sans);
   width: 100%;
@@ -323,6 +334,8 @@
 .select:focus,
 .textarea:focus {
   border-color: var(--phosphor-dim);
+  box-shadow: 0 0 0 2px rgba(255, 180, 84, 0.08);
+  outline: none;
 }
 .textarea {
   resize: vertical;
@@ -380,13 +393,13 @@
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .tab {
   background: transparent;
   border: none;
   color: var(--mute);
-  padding: 9px 4px;
+  padding: 10px 4px;
   margin-right: 18px;
   font-size: 13px;
   cursor: pointer;
@@ -421,14 +434,15 @@
 }
 
 .modal {
-  background: var(--panel);
+  background: #171a1b;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-card);
   padding: 24px;
   width: 420px;
   max-width: 92vw;
   max-height: 86vh;
   overflow-y: auto;
+  box-shadow: 0 24px 70px -24px rgba(0, 0, 0, 0.9);
 }
 .modal.wide {
   width: 560px;
@@ -610,7 +624,7 @@
 .month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
+  gap: 6px;
 }
 .month-grid .dow {
   text-align: center;
@@ -637,6 +651,7 @@
 }
 .day-cell:hover {
   border-color: var(--mute-2);
+  background: var(--panel-hover);
 }
 .day-cell.empty {
   background: transparent;
@@ -723,7 +738,7 @@
   gap: 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-card);
-  background: var(--panel);
+  background: var(--panel-raised);
 }
 
 .log-hour-field {
@@ -738,6 +753,7 @@
   background: var(--panel-raised);
   border: 1px solid var(--border);
   border-radius: var(--r-card);
+  border-top-color: var(--mute-2);
 }
 
 .log-timeline-card {
@@ -746,7 +762,7 @@
 
 .timeline-grid {
   display: grid;
-  gap: 5px;
+  gap: 3px;
 }
 
 .timeline-hour {
@@ -754,7 +770,13 @@
   grid-template-columns: 54px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 10px;
-  min-height: 24px;
+  min-height: 28px;
+  padding: 3px 5px;
+  border-radius: var(--r-chip);
+}
+
+.timeline-hour.has-work {
+  background: rgba(255, 255, 255, 0.018);
 }
 
 .timeline-hour.has-work .timeline-label {
@@ -773,7 +795,7 @@
 
 .timeline-track {
   position: relative;
-  height: 16px;
+  height: 18px;
   border-radius: var(--r-chip);
   background: var(--void);
   border: 1px solid var(--border-soft);
@@ -828,7 +850,7 @@
   min-height: 30px;
   padding: 5px 9px;
   border-left: 2px solid var(--border);
-  background: var(--void);
+  background: rgba(255, 255, 255, 0.018);
   color: var(--mute);
   font-size: 11.5px;
 }
@@ -856,8 +878,11 @@
 .log-entry {
   display: flex;
   gap: 12px;
-  padding: 12px 0;
+  padding: 14px 8px;
   border-bottom: 1px solid var(--border-soft);
+}
+.log-entry:hover {
+  background: rgba(255, 255, 255, 0.018);
 }
 .log-entry:last-child {
   border-bottom: none;
@@ -919,6 +944,28 @@
   min-height: 30px;
   padding: 4px 9px;
   font-size: 11.5px;
+}
+
+@media (max-width: 720px) {
+  .modal.wide {
+    width: 94vw;
+  }
+  .timeline-hour {
+    grid-template-columns: 44px minmax(0, 1fr) 34px;
+    gap: 6px;
+  }
+  .log-entry {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .log-entry .log-time {
+    width: 100%;
+  }
+  .log-filterbar .field,
+  .log-hour-field {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }
 .log-entry.timeline-entry.active {
   background: rgba(255, 180, 84, 0.04);

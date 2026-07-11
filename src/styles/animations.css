@@ -89,8 +89,7 @@
   }
 }
 .pulse-trace-path {
-  stroke-dasharray: 600;
-  animation: pulse-line-draw 2.4s linear infinite;
+  stroke-dasharray: none;
 }
 
 @keyframes pulse-soft {
@@ -178,4 +177,15 @@
 }
 .spin {
   animation: spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
