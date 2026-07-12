@@ -245,6 +245,53 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   assertEqual(gaps.map((gap) => gap.durationMinutes), [60], 'worklogIdleGaps reports meaningful gaps between tracked blocks');
 }
 
+// ---- timeline lanes + overlapping hours ----
+{
+  const at = (h, m) => new Date(2026, 6, 11, h, m).toISOString();
+  const overlapping = [
+    { id: 'a', categoryId: 'cat_jobs', status: 'completed', date: '2026-07-11', startedAt: at(13, 0), endedAt: at(13, 50), durationSec: 3000 },
+    { id: 'b', categoryId: 'cat_leetcode', status: 'completed', date: '2026-07-11', startedAt: at(13, 30), endedAt: at(14, 0), durationSec: 1800 },
+  ];
+  const tl = buildHourlyTimeline(overlapping, '2026-07-11', new Date(2026, 6, 11, 20, 0));
+
+  // Overlapping work must stack into separate lanes, never paint over itself.
+  assertEqual(tl[13].laneCount, 2, 'buildHourlyTimeline stacks overlapping entries into 2 lanes');
+  assertEqual(tl[13].entries.map((e) => e.lane), [0, 1], 'buildHourlyTimeline assigns each overlapping entry its own lane');
+  // 13:00-13:50 plus 13:30-14:00 covers 13:00-14:00 = 60m, not the naive 80m sum.
+  assertEqual(tl[13].totalMinutes, 60, 'buildHourlyTimeline merges overlap instead of double-counting past 60m');
+
+  // Non-overlapping work in the same hour reuses lane 0, keeping the track thin.
+  const sequential = [
+    { id: 'c', categoryId: 'cat_jobs', status: 'completed', date: '2026-07-11', startedAt: at(9, 0), endedAt: at(9, 20), durationSec: 1200 },
+    { id: 'd', categoryId: 'cat_oss', status: 'completed', date: '2026-07-11', startedAt: at(9, 30), endedAt: at(9, 50), durationSec: 1200 },
+  ];
+  const seqTl = buildHourlyTimeline(sequential, '2026-07-11', new Date(2026, 6, 11, 20, 0));
+  assertEqual(seqTl[9].laneCount, 1, 'buildHourlyTimeline keeps back-to-back entries in a single lane');
+  assertEqual(seqTl[9].entries.map((e) => e.lane), [0, 0], 'buildHourlyTimeline reuses a free lane for non-overlapping entries');
+  assertEqual(seqTl[9].totalMinutes, 40, 'buildHourlyTimeline sums disjoint entries in the same hour');
+
+  // A session spanning hours is a continuation after its starting hour.
+  const spanning = [
+    { id: 'e', categoryId: 'cat_jobs', status: 'completed', date: '2026-07-11', startedAt: at(12, 28), endedAt: at(16, 32), durationSec: 14640 },
+  ];
+  const spanTl = buildHourlyTimeline(spanning, '2026-07-11', new Date(2026, 6, 11, 20, 0));
+  assertEqual(spanTl[12].entries[0].continued, false, 'buildHourlyTimeline marks the starting hour as not continued');
+  assertEqual(spanTl[13].entries[0].continued, true, 'buildHourlyTimeline marks later hours of a spanning session as continued');
+  assertEqual(spanTl[13].entries[0].widthPct, 100, 'buildHourlyTimeline fills a fully-covered hour edge to edge');
+  assertEqual(spanTl.filter((h) => h.entries.length).map((h) => h.totalMinutes), [32, 60, 60, 60, 32], 'buildHourlyTimeline slices a spanning session across its hours');
+
+  // A session running in from yesterday has no starting hour today, so 00:00
+  // must be treated as its first appearance or it would never get a label.
+  const overnight = [
+    { id: 'f', categoryId: 'cat_oss', status: 'completed', date: '2026-07-10',
+      startedAt: new Date(2026, 6, 10, 22, 0).toISOString(), endedAt: new Date(2026, 6, 11, 2, 0).toISOString(), durationSec: 14400 },
+  ];
+  const overnightTl = buildHourlyTimeline(overnight, '2026-07-11', new Date(2026, 6, 11, 20, 0));
+  assertEqual(overnightTl[0].entries[0].continued, false, 'buildHourlyTimeline labels an overnight session at 00:00 rather than hiding it');
+  assertEqual(overnightTl[1].entries[0].continued, true, 'buildHourlyTimeline marks the rest of an overnight session as continued');
+  assertEqual(overnightTl[0].totalMinutes, 60, 'buildHourlyTimeline clips an overnight session to the selected day');
+}
+
 // ---- month matrix ----
 {
   const rows = monthMatrix(2026, 5); // June 2026 (0-indexed month)

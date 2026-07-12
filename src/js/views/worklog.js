@@ -54,11 +54,16 @@ function timelineHtml(timeline, store) {
         .map((entry) => {
           const cat = store.getCategory(entry.categoryId);
           const color = cat?.color || 'var(--mute)';
-          const label = escapeHtml(cat ? cat.name : 'Unknown');
-          return `<div class="timeline-block ${entry.status}" style="left:${entry.offsetPct}%;width:${entry.widthPct}%;--block-color:${color}" data-tip="${label} - ${escapeHtml(entryText(entry))}"></div>`;
+          const label = cat ? cat.name : 'Unknown';
+          const range = `${formatClockTime(entry.startedAt)}${entry.endedAt ? ` - ${formatClockTime(entry.endedAt)}` : ' - now'}`;
+          // The tooltip is drawn on <body> (see mountTimelineTooltip), because a
+          // ::after on the block itself is clipped by the track's overflow:hidden.
+          return `<div class="timeline-block ${entry.status} ${entry.continued ? 'continued' : ''}" style="left:${entry.offsetPct}%;width:${entry.widthPct}%;--lane:${entry.lane};--block-color:${color}" data-block-tip="${escapeHtml(`${label} - ${entryText(entry)}`)}" data-block-sub="${escapeHtml(`${range} - ${entryDuration(entry)}`)}"></div>`;
         })
         .join('');
+      // Name an entry only in the hour it starts; the bar carries the rest.
       const taskLabels = hour.entries
+        .filter((entry) => !entry.continued)
         .map((entry) => {
           const cat = store.getCategory(entry.categoryId);
           return `<span class="timeline-task"><span class="timeline-task-dot" style="--block-color:${cat?.color || 'var(--mute)'}"></span>${escapeHtml(cat?.name || 'Unknown')}: ${escapeHtml(entryText(entry))}</span>`;
@@ -66,11 +71,60 @@ function timelineHtml(timeline, store) {
         .join('');
       return `<div class="timeline-hour ${hour.entries.length ? 'has-work' : ''}">
         <div class="timeline-label mono">${hour.label}</div>
-        <div class="timeline-cell"><div class="timeline-track">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
+        <div class="timeline-cell"><div class="timeline-track" style="--lanes:${hour.laneCount}">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
         <div class="timeline-min mono">${hour.totalMinutes ? `${hour.totalMinutes}m` : ''}</div>
       </div>`;
     })
     .join('');
+}
+
+/** Timeline blocks live inside an overflow:hidden track, so a CSS ::after
+ * tooltip on the block gets clipped to a sliver. Draw one shared tooltip on
+ * <body> at position:fixed instead: it cannot be clipped by the track, and it
+ * cannot widen #view-root into a horizontal scrollbar. Listeners are delegated
+ * from `root`, so repainting the view does not leak handlers. */
+function mountTimelineTooltip(root) {
+  const tip = document.createElement('div');
+  tip.className = 'timeline-tip';
+  tip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tip);
+
+  const hide = () => tip.classList.remove('visible');
+
+  function show(block) {
+    tip.innerHTML = `<div class="timeline-tip-main">${escapeHtml(block.dataset.blockTip || '')}</div><div class="timeline-tip-sub mono">${escapeHtml(block.dataset.blockSub || '')}</div>`;
+    // Measure before placing: the tooltip is laid out even at opacity 0.
+    const target = block.getBoundingClientRect();
+    const self = tip.getBoundingClientRect();
+    const left = Math.min(Math.max(8, target.left + target.width / 2 - self.width / 2), window.innerWidth - self.width - 8);
+    const above = target.top - self.height - 8;
+    tip.style.left = `${Math.round(left)}px`;
+    tip.style.top = `${Math.round(above < 8 ? target.bottom + 8 : above)}px`;
+    tip.classList.add('visible');
+  }
+
+  const onOver = (e) => {
+    const block = e.target.closest?.('.timeline-block');
+    if (block) show(block);
+  };
+  const onOut = (e) => {
+    if (e.target.closest?.('.timeline-block')) hide();
+  };
+
+  root.addEventListener('mouseover', onOver);
+  root.addEventListener('mouseout', onOut);
+  // A repaint can delete the hovered block without ever firing mouseout.
+  window.addEventListener('scroll', hide, true);
+
+  return {
+    hide,
+    destroy() {
+      root.removeEventListener('mouseover', onOver);
+      root.removeEventListener('mouseout', onOut);
+      window.removeEventListener('scroll', hide, true);
+      tip.remove();
+    },
+  };
 }
 
 function idleGapsHtml(gaps) {
@@ -257,7 +311,12 @@ export function render(root, store) {
     return filterWorklogEntries(dayEntries, { categoryId: categoryFilter, search, fromHour, toHour, dateKey: selectedDate });
   }
 
+  const tooltip = mountTimelineTooltip(root);
+
   function paint() {
+    // The hovered block is about to be replaced, and a removed node never
+    // fires mouseout - drop the tooltip rather than strand it on screen.
+    tooltip.hide();
     const data = store.data;
     const cats = store.activeCategories();
     const entries = filteredEntries();
@@ -389,6 +448,7 @@ export function render(root, store) {
   }, 60000);
   return () => {
     clearInterval(liveRefresh);
+    tooltip.destroy();
     unsub();
   };
 }

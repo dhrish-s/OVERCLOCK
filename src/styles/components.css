@@ -794,8 +794,13 @@
 }
 
 .timeline-track {
+  --lanes: 1;
+  --lane-h: 12px;
+  --lane-gap: 2px;
   position: relative;
-  height: 18px;
+  /* One lane is the old fixed 18px; overlapping work grows the track instead
+     of stacking blocks on top of each other. */
+  height: calc(var(--lanes) * var(--lane-h) + (var(--lanes) - 1) * var(--lane-gap) + 6px);
   border-radius: var(--r-chip);
   background: var(--void);
   border: 1px solid var(--border-soft);
@@ -855,14 +860,52 @@
   font-size: 11.5px;
 }
 
-.timeline-block {
+/* Scoped to the track so it outranks `[data-tip] { position: relative }`
+   below - blocks carry a data-tip, and equal specificity would let the later
+   rule win, collapsing every bar to zero height. `height` is explicit rather
+   than inflated from top/bottom for the same reason: if this ever loses the
+   cascade again, the bar lands in the wrong place instead of vanishing. */
+.timeline-track .timeline-block {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: calc(3px + var(--lane, 0) * (var(--lane-h) + var(--lane-gap)));
+  height: var(--lane-h);
   min-width: 3px;
   border-radius: 2px;
   background: var(--block-color);
-  box-shadow: 0 0 8px rgba(255, 180, 84, 0.18);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--block-color) 30%, transparent);
+}
+
+/* A run that carried over from the previous hour reads as one continuous bar
+   rather than a fresh block starting at :00. */
+.timeline-track .timeline-block.continued {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Body-level twin of [data-tip], for elements inside a clipping ancestor. */
+.timeline-tip {
+  position: fixed;
+  z-index: 60;
+  max-width: 320px;
+  padding: 6px 9px;
+  border-radius: var(--r-chip);
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 11.5px;
+  line-height: 1.4;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.timeline-tip.visible {
+  opacity: 1;
+}
+
+.timeline-tip-sub {
+  color: var(--mute);
+  font-size: 10.5px;
 }
 
 .timeline-block.active {

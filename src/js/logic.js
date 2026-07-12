@@ -371,6 +371,38 @@ export function filterWorklogEntries(entries, { categoryId = 'all', search = '',
   });
 }
 
+/** Collapse [start, end] pairs into non-overlapping ascending intervals. */
+function mergeIntervals(intervals) {
+  const sorted = intervals
+    .filter(([start, end]) => end > start)
+    .sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const interval of sorted) {
+    const previous = merged[merged.length - 1];
+    if (!previous || interval[0] > previous[1]) merged.push([...interval]);
+    else previous[1] = Math.max(previous[1], interval[1]);
+  }
+  return merged;
+}
+
+/** Greedy interval packing: give each entry the first lane that is free at
+ * the moment it starts, so overlapping work stacks instead of painting over
+ * itself. Entries are assumed sorted by start. */
+function assignLanes(hourEntries) {
+  const laneEndsMs = [];
+  for (const entry of hourEntries) {
+    let lane = laneEndsMs.findIndex((endMs) => endMs <= entry.startMs);
+    if (lane === -1) {
+      lane = laneEndsMs.length;
+      laneEndsMs.push(entry.endMs);
+    } else {
+      laneEndsMs[lane] = entry.endMs;
+    }
+    entry.lane = lane;
+  }
+  return Math.max(1, laneEndsMs.length);
+}
+
 export function buildHourlyTimeline(entries, key, now = new Date()) {
   const { start } = dayBounds(key);
   const dayStartMs = start.getTime();
@@ -385,16 +417,27 @@ export function buildHourlyTimeline(entries, key, now = new Date()) {
         const e = Math.min(entryEndMs(entry, now.getTime()), hourEnd);
         return {
           ...entry,
+          startMs: s,
+          endMs: e,
+          // True once the entry has already appeared in an earlier hour *of
+          // this day*, so the label list can name it once instead of in every
+          // hour it spans. A session running in from yesterday is therefore
+          // not "continued" at 00:00 - that is the first place we can show it.
+          continued: hourStart > Math.max(entryStartMs(entry), dayStartMs),
           offsetPct: ((s - hourStart) / 3600000) * 100,
           widthPct: Math.max(2, ((e - s) / 3600000) * 100),
         };
-      });
-    const totalMinutes = hourEntries.reduce((sum, entry) => {
-      const s = Math.max(entryStartMs(entry), hourStart);
-      const e = Math.min(entryEndMs(entry, now.getTime()), hourEnd);
-      return sum + Math.max(0, Math.round((e - s) / 60000));
-    }, 0);
-    return { hour, label: `${String(hour).padStart(2, '0')}:00`, entries: hourEntries, totalMinutes };
+      })
+      .sort((a, b) => a.startMs - b.startMs);
+
+    const laneCount = assignLanes(hourEntries);
+    // Merge before summing: two overlapping entries must never report more
+    // than the 60 minutes the hour actually contains.
+    const totalMinutes = mergeIntervals(hourEntries.map((entry) => [entry.startMs, entry.endMs])).reduce(
+      (sum, [s, e]) => sum + Math.max(0, Math.round((e - s) / 60000)),
+      0
+    );
+    return { hour, label: `${String(hour).padStart(2, '0')}:00`, entries: hourEntries, laneCount, totalMinutes };
   });
 }
 
@@ -402,18 +445,13 @@ export function worklogIdleGaps(entries, key, { minMinutes = 30 } = {}, now = ne
   const { start, end } = dayBounds(key);
   const dayStartMs = start.getTime();
   const dayEndMs = end.getTime();
-  const intervals = (entries || [])
-    .map((entry) => [Math.max(dayStartMs, entryStartMs(entry)), Math.min(dayEndMs, entryEndMs(entry, now.getTime()))])
-    .filter(([intervalStart, intervalEnd]) => intervalEnd > intervalStart)
-    .sort((a, b) => a[0] - b[0]);
-  if (intervals.length < 2) return [];
-
-  const merged = [];
-  for (const interval of intervals) {
-    const previous = merged[merged.length - 1];
-    if (!previous || interval[0] > previous[1]) merged.push([...interval]);
-    else previous[1] = Math.max(previous[1], interval[1]);
-  }
+  const merged = mergeIntervals(
+    (entries || []).map((entry) => [
+      Math.max(dayStartMs, entryStartMs(entry)),
+      Math.min(dayEndMs, entryEndMs(entry, now.getTime())),
+    ])
+  );
+  if (merged.length < 2) return [];
 
   const minimumMs = minMinutes * 60000;
   return merged.slice(1).flatMap((interval, index) => {
