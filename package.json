@@ -6,7 +6,7 @@
   "main": "main.js",
   "private": true,
   "author": "Dhrish",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
@@ -21,13 +21,14 @@
   "build": {
     "appId": "com.overclock.tracker",
     "productName": "Overclock",
-    "copyright": "Personal use build",
+    "copyright": "Copyright (c) 2026 Dhrish",
     "files": [
       "main.js",
       "preload.js",
       "storage.js",
       "src/**/*",
       "package.json",
+      "LICENSE",
       "build/icon.png"
     ],
     "directories": {
