@@ -368,7 +368,8 @@ export function render(root, store) {
 
   // ---- Categories tab ----
   function categoryRowHtml(c) {
-    const goalLabel = c.goalType === 'count' ? `${c.goalValue} ${c.countLabel.toLowerCase()}` : `${c.goalValue} min`;
+    const unit = c.goalType === 'count' ? c.countLabel.toLowerCase() : 'min';
+    const goalLabel = `${c.baselineGoalValue || c.goalValue} baseline / ${c.focusGoalValue || c.goalValue} focus ${unit}`;
     const timerLabel = c.timerMode === 'pomodoro'
       ? `Pomodoro ${Math.round(c.timerWorkSec / 60)}/${Math.round(c.timerBreakSec / 60)}`
       : c.timerMode === 'countdown'
