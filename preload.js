@@ -27,6 +27,13 @@ contextBridge.exposeInMainWorld('api', {
   setLaunchOnStartup: (enabled) => ipcRenderer.invoke('app:setLaunchOnStartup', enabled),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
   showDataFolder: () => ipcRenderer.invoke('shell:showDataFolder'),
+  scheduleTimerDeadline: (payload) => ipcRenderer.invoke('timer:scheduleDeadline', payload),
+  cancelTimerDeadline: () => ipcRenderer.send('timer:cancelDeadline'),
+  onTimerDeadline: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on('timer:deadline', handler);
+    return () => ipcRenderer.removeListener('timer:deadline', handler);
+  },
 
   onReminder: (callback) => {
     const handler = (_event, payload) => callback(payload);

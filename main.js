@@ -44,6 +44,7 @@ if (!gotLock) {
 let mainWindow = null;
 let tray = null;
 let isQuitting = false;
+let focusDeadlineTimer = null;
 
 const userDataDir = app.getPath('userData');
 const dataFilePath = path.join(userDataDir, 'overclock-data.json');
@@ -291,6 +292,32 @@ ipcMain.handle('data:save', (_event, data) => {
 });
 
 ipcMain.handle('app:getVersion', () => app.getVersion());
+
+ipcMain.handle('timer:scheduleDeadline', (_event, payload) => {
+  if (focusDeadlineTimer) clearTimeout(focusDeadlineTimer);
+  const delayMs = Math.max(0, Math.min(Number(payload?.delayMs) || 0, 7 * 86400000));
+  const sessionId = String(payload?.sessionId || '');
+  const title = String(payload?.title || 'Focus timer').slice(0, 120);
+  const body = String(payload?.body || '').slice(0, 300);
+  if (!sessionId || delayMs <= 0) return { ok: false };
+  focusDeadlineTimer = setTimeout(() => {
+    focusDeadlineTimer = null;
+    try {
+      if ((!mainWindow || !mainWindow.isVisible() || !mainWindow.isFocused()) && Notification.isSupported()) {
+        new Notification({ title, body }).show();
+      }
+    } catch (err) {
+      console.error('[overclock] timer notification failed:', err);
+    }
+    if (mainWindow) mainWindow.webContents.send('timer:deadline', { sessionId });
+  }, delayMs);
+  return { ok: true };
+});
+
+ipcMain.on('timer:cancelDeadline', () => {
+  if (focusDeadlineTimer) clearTimeout(focusDeadlineTimer);
+  focusDeadlineTimer = null;
+});
 
 ipcMain.handle('shell:showDataFolder', () => {
   try {

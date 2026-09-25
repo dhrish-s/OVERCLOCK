@@ -140,6 +140,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   let sessionIntent = resumeLog?.intent || '';
   let count = 0;
   let intervalId = null;
+  let unsubscribeDeadline = null;
   let ended = false;
   let noteStepSeconds = 0;
   let sessionLog = resumeLog;
@@ -189,6 +190,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
       renderShell();
       startInterval();
       addClockListeners();
+      schedulePhaseDeadline();
     });
     setTimeout(() => modal.querySelector('#ft-intent')?.focus(), 0);
   }
@@ -293,6 +295,23 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
       playBeep(660);
       showToast({ kind: 'info', title: "Time's up", body: `${category.name} countdown finished.`, timeout: 7000 });
     }
+    schedulePhaseDeadline();
+  }
+
+  function schedulePhaseDeadline() {
+    if (!clock || !sessionLog) return;
+    const snap = clock.snapshot();
+    if (!snap.running || mode === 'stopwatch') {
+      window.api.cancelTimerDeadline();
+      return;
+    }
+    const isBreak = snap.phase === 'break';
+    window.api.scheduleTimerDeadline({
+      sessionId: sessionLog.id,
+      delayMs: snap.remainingSec * 1000,
+      title: mode === 'countdown' ? "Time's up" : isBreak ? 'Back to focus' : 'Break time',
+      body: mode === 'countdown' ? `${category.name} countdown finished.` : isBreak ? category.name : `Step away for ${Math.round((breakSec || 0) / 60)} minutes.`,
+    });
   }
 
   function checkpointClock() {
@@ -313,12 +332,14 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   function toggleRunning() {
     clock.toggle();
     checkpointClock();
+    schedulePhaseDeadline();
     updateDisplay();
   }
 
   function resetClock() {
     clock.reset();
     checkpointClock();
+    schedulePhaseDeadline();
     updateDisplay();
   }
 
@@ -346,11 +367,16 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   function addClockListeners() {
     document.addEventListener('visibilitychange', syncFromLaptopClock);
     window.addEventListener('focus', syncFromLaptopClock);
+    unsubscribeDeadline = window.api.onTimerDeadline((payload) => {
+      if (payload.sessionId === sessionLog?.id) syncFromLaptopClock();
+    });
   }
 
   function removeClockListeners() {
     document.removeEventListener('visibilitychange', syncFromLaptopClock);
     window.removeEventListener('focus', syncFromLaptopClock);
+    if (unsubscribeDeadline) unsubscribeDeadline();
+    unsubscribeDeadline = null;
   }
 
   function closeAndDiscard() {
@@ -366,6 +392,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
       if (!sure) return;
     }
     stopInterval();
+    window.api.cancelTimerDeadline();
     removeClockListeners();
     store.discardSessionLog(sessionLog?.id);
     emit({ type: 'discard', categoryId: category.id });
@@ -378,6 +405,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     clock.setRunning(false);
     noteStepSeconds = clock.snapshot().accumulatedWorkSec;
     stopInterval();
+    window.api.cancelTimerDeadline();
     removeClockListeners();
     modal.innerHTML = `
       <div class="modal-title">Wrap up - ${category.name}</div>
@@ -407,8 +435,10 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     modal.querySelector('#ft-back').addEventListener('click', () => {
       renderShell();
       clock.setRunning(true);
+      checkpointClock();
       startInterval();
       addClockListeners();
+      schedulePhaseDeadline();
     });
     modal.querySelector('#ft-confirm').addEventListener('click', () => {
       const note = modal.querySelector('#ft-note').value;
@@ -460,6 +490,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     tick();
     startInterval();
     addClockListeners();
+    schedulePhaseDeadline();
   } else {
     renderIntentStep();
   }
