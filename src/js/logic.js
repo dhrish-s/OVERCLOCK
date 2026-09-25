@@ -92,8 +92,10 @@ export function updateStreakForToday(streak, today, goalMet, shieldsAvailable = 
     s.current = 1;
   } else {
     const gap = diffDays(s.lastDate, today);
-    if (gap <= 0) {
-      // already counted today (or a clock oddity) - no change
+    if (gap < 0) {
+      return { streak: s, shieldsUsed };
+    } else if (gap === 0) {
+      // Already counted today.
     } else if (gap === 1) {
       s.current += 1;
     } else {

@@ -83,6 +83,9 @@ assertEqual(diffDays('2026-05-31', '2026-06-01'), 1, 'diffDays across month boun
   assertEqual(r.streak.current, 2, 'same-day re-evaluation is idempotent');
   streak = r.streak;
 
+  r = updateStreakForToday(streak, '2026-06-10', true);
+  assertEqual(r.streak.lastDate, '2026-06-11', 'older activity cannot move a streak backward');
+
   // Gap of 2 days with no shields breaks the streak back to 1.
   r = updateStreakForToday(streak, '2026-06-13', true, 0);
   assertEqual(r.streak.current, 1, 'streak resets to 1 after an unshielded gap');
