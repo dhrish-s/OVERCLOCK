@@ -43,17 +43,17 @@ The reminder clock lives in the main process specifically so it keeps running wh
 Aesthetic: "engineering console / terminal telemetry" - a dark void background, an amber phosphor accent rather than the generic cyan-neon look, hairline borders with glow instead of drop shadows, and monospace type reserved for anything that's fundamentally a readout (timers, counters, dates).
 
 ```
---void: #0B0E13            --phosphor: #FFB454        --violet: #8B7CF6
---panel: #141925            --phosphor-dim: #8A6A37     --diff-green: #4ADE80
---panel-raised: #1B2230      (+ -glow variants at        --diff-red: #F2555A
---panel-hover: #202838        ~30% alpha for each)
+--void: #0D0F10            --phosphor: #FFB454        --violet: #8B7CF6
+--panel: #151819            --phosphor-dim: #8A6A37     --diff-green: #4ADE80
+--panel-raised: #1D2122      (+ -glow variants at        --diff-red: #F2555A
+--panel-hover: #252A2C        ~30% alpha for each)
 --border / --border-soft
 
 --font-mono: Cascadia Code, JetBrains Mono, Consolas
 --font-sans: Segoe UI Variable, Segoe UI, system-ui
 
---r-card: 7px   --r-chip: 4px   --r-pill: 999px
---titlebar-h: 38px   --rail-w: 76px
+--r-card: 8px   --r-chip: 5px   --r-pill: 999px
+--titlebar-h: 42px   --rail-w: 78px
 ```
 
 Layout is a single CSS grid (`#app-shell`): a fixed-height titlebar row, then a row split into a 76px icon rail and the scrollable view area. Every view is a self-contained module that renders into that view area.
@@ -76,7 +76,10 @@ One JSON object, persisted as a whole on every change (debounced 350ms in the re
   },
   streaks: { overall: {current, longest, lastDate}, [categoryId]: {...} },
   rewards: { small: [...], big: [...], usedSmallIds, usedBigIds, history: [...] },
-  worklog: [ { id, date, categoryId, note, createdAt } ],
+  worklog: [
+    { id, type, status, date, categoryId, startedAt, endedAt, durationSec,
+      count, intent, note, completed, timer: { mode, workSec, breakSec, state } }
+  ],
   settings: { waterReminderMinutes, walkReminderMinutes, remindersEnabled,
               soundEnabled, launchOnStartup }
 }
@@ -93,6 +96,7 @@ Each pool (small/coins, big/stars) tracks which reward IDs have already been cla
 ```
 main.js                    Main process: window, tray, IPC, reminder clock, data file I/O
 preload.js                  contextBridge surface exposed to the renderer as window.api
+storage.js                  Corrupt-file quarantine and rotating-backup recovery
 src/index.html               SPA shell + CSP
 src/js/app.js                 Router: builds the shell chrome, mounts/cleans up views
 src/js/state.js               Data model, defaults, migration, the Store class
@@ -108,12 +112,15 @@ src/js/views/rewards.js       Reward pool balances + claim flow
 src/js/views/worklog.js       Searchable log of every logged session/note
 src/js/views/stats.js         Aggregate charts/trends
 src/js/views/settings.js      Category/reward CRUD, reminders, startup toggle, data import/export/reset
-test/logic.test.mjs          42 unit tests covering logic.js
+test/logic.test.mjs          Logic, Store, clock, recovery, and analytics tests
+test/storage.test.cjs        Filesystem corruption and backup-recovery tests
 build/icon.png, icon.ico     App icon (original geometric mark, generated for this project)
 ```
 
 ## Known limitations / ideas for later
 
 - The reward "claim" flow currently has no undo - a misclick spends real coins. A confirmation step would be a small, safe addition.
-- Stats trends are computed at render time from `days`, which is fine at this scale but would want pre-aggregation if the data file grows into years of history.
+- Historical mission calculations still use current category target definitions. Persisting per-day target snapshots would make long-term reports immutable when goals change.
+- Automatic reward-bearing session rows are intentionally locked in Work Log because editing them independently would desynchronize coins, XP, streaks, and daily progress.
+- Stats trends are computed at render time, which is fine at this scale but would want indexed aggregation if the data file grows into years of history.
 - There's no per-category "pause" separate from full archive - archiving hides a category from active grids but its historical data and streak stay intact, which covers most of the same need.
