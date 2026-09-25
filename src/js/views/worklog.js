@@ -241,7 +241,11 @@ export function render(root, store) {
         count: modal.querySelector('#manual-count').value,
         completed: modal.querySelector('#manual-completed').checked,
       };
-      const result = editing ? store.updateWorklogEntry(entry.id, values) : store.addManualWorklogEntry(values);
+      let result = editing ? store.updateWorklogEntry(entry.id, values) : store.addManualWorklogEntry(values);
+      if (result.conflict && window.confirm(`${result.error} Add it anyway?`)) {
+        values.allowOverlap = true;
+        result = editing ? store.updateWorklogEntry(entry.id, values) : store.addManualWorklogEntry(values);
+      }
       if (!result.ok) {
         window.alert(result.error);
         return;
