@@ -67,7 +67,8 @@ npm test
 A successful run ends with output similar to:
 
 ```text
-89 passed, 0 failed
+111 passed, 0 failed
+4 storage recovery checks passed
 ```
 
 ## Build Without Installing
