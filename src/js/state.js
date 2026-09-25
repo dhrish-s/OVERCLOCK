@@ -275,10 +275,10 @@ export class Store {
     this.mutate((data) => {
       const category = data.categories.find((c) => c.id === categoryId);
       if (!category) return;
-      const today = todayKey();
       const endedAt = new Date().toISOString();
       const sessionStartedAt = startedAt || new Date(Date.now() - (seconds || 0) * 1000).toISOString();
-      const day = ensureDayShape(data, today);
+      const sessionDate = dateKeyFromIso(sessionStartedAt);
+      const day = ensureDayShape(data, sessionDate);
       const dayMode = dayModeById(data, day.plan?.modeId || defaultModeId(data));
       const wasPerfectBefore = dailyMissionStatus(day, data.categories, dayMode).complete;
 
@@ -316,7 +316,7 @@ export class Store {
 
       // Per-category streak.
       const catStreak = ensureStreakShape(data, categoryId);
-      const { streak: newCatStreak } = updateStreakForToday(catStreak, today, prog.goalMet);
+      const { streak: newCatStreak } = updateStreakForToday(catStreak, sessionDate, prog.goalMet);
       data.streaks[categoryId] = newCatStreak;
 
       // Overall perfect-day streak + bonus star, only the moment it flips.
@@ -328,7 +328,7 @@ export class Store {
         const overall = ensureStreakShape(data, 'overall');
         const { streak: newOverall } = updateStreakForToday(
           overall,
-          today,
+          sessionDate,
           true,
           data.profile.streakShields
         );

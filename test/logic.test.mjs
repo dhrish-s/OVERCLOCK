@@ -368,6 +368,16 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 {
   const store = new Store();
   store._scheduleSave = () => {};
+  const startKey = addDays(todayKey(), -1);
+  const [year, month, day] = startKey.split('-').map(Number);
+  const startedAt = new Date(year, month - 1, day, 23, 55).toISOString();
+  store.logSession({ categoryId: 'cat_leetcode', seconds: 600, count: 1, completed: true, startedAt });
+  assertTrue(!!store.data.days[startKey], 'cross-midnight sessions credit the local day they started');
+}
+
+{
+  const store = new Store();
+  store._scheduleSave = () => {};
   const entry = store.beginSessionLog({
     categoryId: 'cat_leetcode',
     intent: 'Recovery test',
