@@ -61,6 +61,8 @@ function openCategoryModal(store, existing) {
         color: '#FFB454',
         goalType: 'count',
         goalValue: 1,
+        baselineGoalValue: 1,
+        focusGoalValue: 2,
         countLabel: 'Done',
         timerMode: 'stopwatch',
         timerWorkSec: 25 * 60,
@@ -98,8 +100,12 @@ function openCategoryModal(store, existing) {
         </select>
       </div>
       <div class="field">
-        <label>Daily goal value</label>
-        <input class="input" type="number" min="1" id="f-goalvalue" value="${draft.goalValue}"/>
+        <label>Baseline target</label>
+        <input class="input" type="number" min="1" id="f-baseline-goal" value="${draft.baselineGoalValue || draft.goalValue}"/>
+      </div>
+      <div class="field">
+        <label>Focus-day target</label>
+        <input class="input" type="number" min="1" id="f-focus-goal" value="${draft.focusGoalValue || draft.goalValue}"/>
       </div>
       <div class="field" id="f-countlabel-wrap">
         <label>Count label</label>
@@ -161,7 +167,8 @@ function openCategoryModal(store, existing) {
     }
     const goalType = overlay.querySelector('#f-goaltype').value;
     const timerMode = overlay.querySelector('#f-timermode').value;
-    const goalValue = clamp(parseInt(overlay.querySelector('#f-goalvalue').value, 10) || 1, 1, 999);
+    const baselineGoalValue = clamp(parseInt(overlay.querySelector('#f-baseline-goal').value, 10) || 1, 1, 999);
+    const focusGoalValue = Math.max(baselineGoalValue, clamp(parseInt(overlay.querySelector('#f-focus-goal').value, 10) || baselineGoalValue, 1, 999));
     const coinMin = clamp(parseInt(overlay.querySelector('#f-coinmin').value, 10) || 1, 1, 999);
     const coinMax = Math.max(coinMin, clamp(parseInt(overlay.querySelector('#f-coinmax').value, 10) || coinMin, 1, 999));
     const workMin = clamp(parseInt(overlay.querySelector('#f-worksec').value, 10) || 25, 1, 240);
@@ -173,7 +180,9 @@ function openCategoryModal(store, existing) {
       icon: overlay.querySelector('#f-icon').value,
       color: overlay.querySelector('#f-color').value,
       goalType,
-      goalValue,
+      goalValue: draft.goalValue || baselineGoalValue,
+      baselineGoalValue,
+      focusGoalValue,
       countLabel: overlay.querySelector('#f-countlabel').value.trim() || 'Done',
       timerMode,
       timerWorkSec: timerMode === 'stopwatch' ? 0 : workMin * 60,
