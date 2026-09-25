@@ -29,6 +29,37 @@ Most timers remember duration but lose context. Overclock keeps the task, catego
 | Set category goals that fit the day | Add one-off and forgotten work manually | Compare weekly activity and category totals |
 | Keep minimum goals realistic | See the active task from every screen | Build streaks and spend earned rewards |
 
+## A Closer Look
+
+The gallery below uses synthetic sample activity created only for these screenshots. Click any image to see it at full size.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/images/overclock-worklog.png"><img src="docs/images/overclock-worklog.png" alt="Hourly worklog with completed tasks and idle gaps"></a>
+      <br><strong>Hourly worklog</strong><br>
+      <sub>See finished tasks inside the day, along with the gaps between them.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/images/overclock-insights.png"><img src="docs/images/overclock-insights.png" alt="Weekly statistics and category trends"></a>
+      <br><strong>Weekly insights</strong><br>
+      <sub>Compare active days, tracked time, earned coins, and category balance.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/images/overclock-calendar.png"><img src="docs/images/overclock-calendar.png" alt="Activity calendar with perfect days and session details"></a>
+      <br><strong>Calendar history</strong><br>
+      <sub>Open any day to review its goals, work blocks, and perfect-day status.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/images/overclock-rewards.png"><img src="docs/images/overclock-rewards.png" alt="Personal rewards available for earned coins and stars"></a>
+      <br><strong>Personal rewards</strong><br>
+      <sub>Turn completed work into small breaks and bigger rewards you chose yourself.</sub>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - **One active session:** Starting a timer locks the other task controls until the session ends.
