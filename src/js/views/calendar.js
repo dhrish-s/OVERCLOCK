@@ -6,16 +6,14 @@
 
 import { icon } from './../icons.js';
 import { escapeHtml, fmtDateLong } from './../dom.js';
-import { dateKey, addDays, todayKey, monthMatrix, progressForCategory, formatMinutesShort, worklogEntriesForDate, formatClockTime } from './../logic.js';
+import { dateKey, addDays, todayKey, monthMatrix, dailyMissionStatus, formatMinutesShort, worklogEntriesForDate, formatClockTime } from './../logic.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-function dayActivityLevel(day, categories) {
-  if (!day) return 0;
-  const active = categories.filter((c) => !c.archived);
-  if (active.length === 0) return 0;
-  const met = active.filter((c) => day.categoryProgress?.[c.id]?.goalMet).length;
-  const frac = met / active.length;
+function missionActivityLevel(missions) {
+  if (missions.length === 0) return 0;
+  const met = missions.filter((mission) => mission.progress.goalMet).length;
+  const frac = met / missions.length;
   if (frac === 0) return 0;
   if (frac < 0.34) return 1;
   if (frac < 0.67) return 2;
@@ -48,8 +46,9 @@ export function render(root, store) {
     while (cursor <= endPadded) {
       const isFuture = cursor > end;
       const day = data.days[cursor];
-      const level = dayActivityLevel(day, data.categories);
-      const perfect = !!day?.perfectDay;
+      const status = dailyMissionStatus(day, data.categories, store.dayModeForDate(cursor));
+      const level = day ? missionActivityLevel(status.missions) : 0;
+      const perfect = status.complete;
       cells.push({ key: cursor, level, perfect, isFuture });
       cursor = addDays(cursor, 1);
     }
@@ -74,13 +73,14 @@ export function render(root, store) {
         const dateNum = Number(key.split('-')[2]);
         const isToday = key === today;
         const isSelected = key === selectedKey;
-        const isPerfect = !!day?.perfectDay;
+        const status = dailyMissionStatus(day, data.categories, store.dayModeForDate(key));
+        const isPerfect = status.complete;
         const hasActivity = !!day && Object.keys(day.categoryProgress || {}).length > 0;
         const dots = store
           .activeCategories()
           .map((c) => {
-            const met = day?.categoryProgress?.[c.id]?.goalMet;
-            return `<span class="${met ? 'met' : ''}" style="${met ? `background:${c.color}` : ''}"></span>`;
+            const mission = status.missions.find((item) => item.category.id === c.id);
+            return `<span class="${mission?.progress.goalMet ? 'met' : ''}" style="${mission?.progress.goalMet ? `background:${c.color}` : ''}"></span>`;
           })
           .join('');
         return `<div class="day-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPerfect ? 'perfect' : ''} ${hasActivity ? 'has-activity' : ''}" data-key="${key}">
@@ -96,15 +96,15 @@ export function render(root, store) {
     const data = store.data;
     const day = data.days[selectedKey];
     const cats = store.activeCategories();
+    const missionStatus = dailyMissionStatus(day, cats, store.dayModeForDate(selectedKey));
     const logsForDay = worklogEntriesForDate(data.worklog, selectedKey);
 
-    const rows = cats
-      .map((c) => {
-        const prog = progressForCategory(day, c);
-        const label = c.goalType === 'count' ? `${prog.count}/${c.goalValue}` : `${formatMinutesShort(prog.minutes)} / ${formatMinutesShort(c.goalValue)}`;
+    const rows = missionStatus.missions
+      .map(({ category: c, target, progress }) => {
+        const label = target.goalType === 'count' ? `${progress.count}/${target.goalValue}` : `${formatMinutesShort(progress.minutes)} / ${formatMinutesShort(target.goalValue)}`;
         return `<div class="row between" style="padding:7px 0;border-bottom:1px solid var(--border-soft)">
           <div class="row"><span style="color:${c.color}">${icon(c.icon, 16)}</span><span style="font-size:13px">${escapeHtml(c.name)}</span></div>
-          <div class="row"><span class="mono mute" style="font-size:12px">${label}</span>${prog.goalMet ? `<span class="green">${icon('check', 14)}</span>` : ''}</div>
+          <div class="row"><span class="mono mute" style="font-size:12px">${label}</span>${progress.goalMet ? `<span class="green">${icon('check', 14)}</span>` : ''}</div>
         </div>`;
       })
       .join('');
@@ -129,7 +129,7 @@ export function render(root, store) {
     return `
       <div class="row between" style="margin-bottom:10px">
         <div style="font-weight:600;font-size:14px">${fmtDateLong(selectedKey)}</div>
-        ${day?.perfectDay ? `<span class="badge done">${icon('star', 12)} PERFECT DAY</span>` : ''}
+        ${missionStatus.complete ? `<span class="badge done">${icon('star', 12)} PERFECT DAY</span>` : ''}
       </div>
       ${rows || `<div class="mute" style="font-size:12.5px">No categories tracked.</div>`}
       <div style="margin-top:14px;font-weight:600;font-size:13px">Sessions</div>
