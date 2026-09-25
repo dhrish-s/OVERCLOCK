@@ -28,6 +28,7 @@ import {
   buildHourlyTimeline,
   worklogIdleGaps,
   overlappingWorklogEntries,
+  worklogInsights,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData, Store } from '../src/js/state.js';
@@ -251,6 +252,13 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   assertEqual(gaps.map((gap) => gap.durationMinutes), [60], 'worklogIdleGaps reports meaningful gaps between tracked blocks');
   const overlaps = overlappingWorklogEntries(dayEntries, new Date(2026, 5, 17, 9, 30), new Date(2026, 5, 17, 10, 30));
   assertEqual(overlaps.map((entry) => entry.id), ['a'], 'overlappingWorklogEntries detects intersecting work blocks');
+  const insights = worklogInsights([
+    { id: 'auto', type: 'session', status: 'completed', startedAt: new Date(2026, 5, 17, 9, 0).toISOString(), durationSec: 3600 },
+    { id: 'manual', type: 'manual', status: 'completed', startedAt: new Date(2026, 5, 17, 9, 30).toISOString(), durationSec: 1800 },
+  ], '2026-06-17', 7, new Date(2026, 5, 17, 12, 0));
+  assertEqual(insights.totalMinutes, 90, 'worklogInsights includes automatic and manual tracked time');
+  assertEqual(insights.manualMinutes, 30, 'worklogInsights separates manually entered time');
+  assertEqual(insights.bestHour, 9, 'worklogInsights identifies the strongest session start hour');
 }
 
 // ---- month matrix ----

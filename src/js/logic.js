@@ -439,3 +439,23 @@ export function overlappingWorklogEntries(entries, startedAt, endedAt, excludeId
     return entryStartMs(entry) < endMs && entryEndMs(entry, now.getTime()) > startMs;
   });
 }
+
+export function worklogInsights(worklog, endKey = todayKey(), days = 7, now = new Date()) {
+  const keys = new Set(rangeEndingOn(endKey, days));
+  const entries = (worklog || [])
+    .map((entry) => normalizedWorklogEntry(entry, now))
+    .filter((entry) => entry.status === 'completed' && keys.has(dateKeyFromIso(entry.startedAt)));
+  const totalMinutes = entries.reduce((sum, entry) => sum + (entry.durationSec || 0) / 60, 0);
+  const manualMinutes = entries.filter((entry) => entry.type === 'manual').reduce((sum, entry) => sum + (entry.durationSec || 0) / 60, 0);
+  const hourTotals = Array.from({ length: 24 }, () => 0);
+  for (const entry of entries) hourTotals[new Date(entry.startedAt).getHours()] += (entry.durationSec || 0) / 60;
+  const bestHour = entries.length ? hourTotals.indexOf(Math.max(...hourTotals)) : null;
+  return {
+    sessionCount: entries.length,
+    totalMinutes: Math.round(totalMinutes),
+    manualMinutes: Math.round(manualMinutes),
+    averageMinutes: entries.length ? Math.round(totalMinutes / entries.length) : 0,
+    activeDays: new Set(entries.map((entry) => dateKeyFromIso(entry.startedAt))).size,
+    bestHour,
+  };
+}
