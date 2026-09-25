@@ -52,6 +52,7 @@ const userDataDir = app.getPath('userData');
 const dataFilePath = path.join(userDataDir, 'overclock-data.json');
 const backupsDir = path.join(userDataDir, 'backups');
 const MAX_BACKUPS = 6;
+const MAX_TRANSFER_BYTES = 50 * 1024 * 1024;
 
 function ensureDirs() {
   if (!fs.existsSync(backupsDir)) {
@@ -83,7 +84,13 @@ function rotateBackups() {
 
 function safeWriteData(data) {
   ensureDirs();
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Data must be a JSON object.');
+  }
   const json = JSON.stringify(data, null, 2);
+  if (Buffer.byteLength(json, 'utf8') > MAX_TRANSFER_BYTES) {
+    throw new Error('Data exceeds the 50 MB safety limit.');
+  }
   const tmpPath = `${dataFilePath}.tmp`;
 
   // Snapshot the previous file before we touch anything, so a crash mid
@@ -135,6 +142,8 @@ function createWindow(startHidden) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
       spellcheck: false,
     },
   });
@@ -164,11 +173,14 @@ function createWindow(startHidden) {
 
   // Lock the renderer to this app's own bundled entry point only.
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-attach-webview', (event) => event.preventDefault());
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (url !== appIndexUrl) {
       event.preventDefault();
     }
   });
+  mainWindow.webContents.session.setPermissionCheckHandler(() => false);
+  mainWindow.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
 }
 
 function createTray() {
@@ -285,9 +297,22 @@ app.on('before-quit', (event) => {
 // ---------------------------------------------------------------------
 // IPC - the entire privileged surface the renderer can reach.
 // ---------------------------------------------------------------------
-ipcMain.handle('data:load', () => safeReadData());
+function requireTrustedIpc(event) {
+  const trusted =
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    event.sender === mainWindow.webContents &&
+    event.senderFrame === mainWindow.webContents.mainFrame;
+  if (!trusted) throw new Error('Blocked IPC from an untrusted sender.');
+}
 
-ipcMain.handle('data:save', (_event, data) => {
+ipcMain.handle('data:load', (event) => {
+  requireTrustedIpc(event);
+  return safeReadData();
+});
+
+ipcMain.handle('data:save', (event, data) => {
+  requireTrustedIpc(event);
   try {
     if (data && data.settings) {
       reminderSettings = {
@@ -306,10 +331,17 @@ ipcMain.handle('data:save', (_event, data) => {
   }
 });
 
-ipcMain.handle('app:getVersion', () => app.getVersion());
-ipcMain.on('app:flushComplete', finishQuit);
+ipcMain.handle('app:getVersion', (event) => {
+  requireTrustedIpc(event);
+  return app.getVersion();
+});
+ipcMain.on('app:flushComplete', (event) => {
+  requireTrustedIpc(event);
+  finishQuit();
+});
 
-ipcMain.handle('timer:scheduleDeadline', (_event, payload) => {
+ipcMain.handle('timer:scheduleDeadline', (event, payload) => {
+  requireTrustedIpc(event);
   if (focusDeadlineTimer) clearTimeout(focusDeadlineTimer);
   const delayMs = Math.max(0, Math.min(Number(payload?.delayMs) || 0, 7 * 86400000));
   const sessionId = String(payload?.sessionId || '');
@@ -330,12 +362,14 @@ ipcMain.handle('timer:scheduleDeadline', (_event, payload) => {
   return { ok: true };
 });
 
-ipcMain.on('timer:cancelDeadline', () => {
+ipcMain.on('timer:cancelDeadline', (event) => {
+  requireTrustedIpc(event);
   if (focusDeadlineTimer) clearTimeout(focusDeadlineTimer);
   focusDeadlineTimer = null;
 });
 
-ipcMain.handle('shell:showDataFolder', () => {
+ipcMain.handle('shell:showDataFolder', (event) => {
+  requireTrustedIpc(event);
   try {
     shell.showItemInFolder(dataFilePath);
     return { ok: true };
@@ -344,7 +378,8 @@ ipcMain.handle('shell:showDataFolder', () => {
   }
 });
 
-ipcMain.handle('app:getLaunchOnStartup', () => {
+ipcMain.handle('app:getLaunchOnStartup', (event) => {
+  requireTrustedIpc(event);
   // Ask Windows directly rather than trusting our own JSON file, in case
   // the user flipped it off from Windows Settings > Apps > Startup.
   if (!app.isPackaged) return { enabled: true, devMode: true };
@@ -352,28 +387,49 @@ ipcMain.handle('app:getLaunchOnStartup', () => {
   return { enabled: !!settings.openAtLogin };
 });
 
-ipcMain.handle('app:setLaunchOnStartup', (_event, enabled) => {
+ipcMain.handle('app:setLaunchOnStartup', (event, enabled) => {
+  requireTrustedIpc(event);
   syncLoginItemSetting(enabled);
   return { ok: true, enabled: !!enabled };
 });
 
-ipcMain.handle('shell:openExternal', (_event, url) => {
-  if (typeof url === 'string' && /^https:\/\//i.test(url)) {
-    shell.openExternal(url);
-    return { ok: true };
+ipcMain.handle('shell:openExternal', async (event, url) => {
+  requireTrustedIpc(event);
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:') {
+      await shell.openExternal(parsed.toString());
+      return { ok: true };
+    }
+  } catch (err) {
+    return { ok: false, error: 'Blocked: invalid external URL.' };
   }
   return { ok: false, error: 'Blocked: only https:// links may be opened.' };
 });
 
-ipcMain.on('window:minimize', () => mainWindow && mainWindow.minimize());
-ipcMain.on('window:maximize', () => {
+ipcMain.on('window:minimize', (event) => {
+  requireTrustedIpc(event);
+  if (mainWindow) mainWindow.minimize();
+});
+ipcMain.on('window:maximize', (event) => {
+  requireTrustedIpc(event);
   if (!mainWindow) return;
   if (mainWindow.isMaximized()) mainWindow.unmaximize();
   else mainWindow.maximize();
 });
-ipcMain.on('window:close', () => mainWindow && mainWindow.hide());
+ipcMain.on('window:close', (event) => {
+  requireTrustedIpc(event);
+  if (mainWindow) mainWindow.hide();
+});
 
-ipcMain.handle('dialog:exportFile', async (_event, { defaultName, content }) => {
+ipcMain.handle('dialog:exportFile', async (event, { defaultName, content }) => {
+  requireTrustedIpc(event);
+  if (typeof defaultName !== 'string' || typeof content !== 'string') {
+    return { ok: false, error: 'Invalid export request.' };
+  }
+  if (Buffer.byteLength(content, 'utf8') > MAX_TRANSFER_BYTES) {
+    return { ok: false, error: 'Export exceeds the 50 MB safety limit.' };
+  }
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: defaultName,
     filters: [
@@ -390,13 +446,18 @@ ipcMain.handle('dialog:exportFile', async (_event, { defaultName, content }) => 
   }
 });
 
-ipcMain.handle('dialog:importFile', async () => {
+ipcMain.handle('dialog:importFile', async (event) => {
+  requireTrustedIpc(event);
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     filters: [{ name: 'JSON', extensions: ['json'] }],
     properties: ['openFile'],
   });
   if (canceled || !filePaths || !filePaths[0]) return { ok: false };
   try {
+    const stats = fs.statSync(filePaths[0]);
+    if (!stats.isFile() || stats.size > MAX_TRANSFER_BYTES) {
+      return { ok: false, error: 'Import must be a JSON file no larger than 50 MB.' };
+    }
     const raw = fs.readFileSync(filePaths[0], 'utf-8');
     const parsed = JSON.parse(raw);
     return { ok: true, data: parsed };
