@@ -5,7 +5,12 @@
 // sacrificing anything visually.
 
 import { escapeHtml } from './../dom.js';
-import { addDays, todayKey, formatMinutesShort, reviewForRange } from './../logic.js';
+import { addDays, todayKey, formatMinutesShort, reviewForRange, worklogInsights } from './../logic.js';
+
+function hourLabel(hour) {
+  if (hour === null) return 'No data';
+  return new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: 'numeric' });
+}
 
 function coinsBarChart(data, days = 14) {
   const today = todayKey();
@@ -82,6 +87,7 @@ export function render(root, store) {
       0
     );
     const review = reviewForRange(data, cats, data.dailyPlanning?.dayModes || [], todayKey(), 7);
+    const insights = worklogInsights(data.worklog, todayKey(), 7);
     const weakest = cats.find((c) => c.id === review.weakestCategoryId);
 
     root.innerHTML = `
@@ -108,12 +114,13 @@ export function render(root, store) {
             </div>
             <div class="mono mute" style="font-size:11.5px">Weakest: ${escapeHtml(weakest ? weakest.name : 'Not enough data')}</div>
           </div>
-          <div class="grid grid-cols-4">
-            <div class="card-tight"><div class="mute" style="font-size:11.5px">Baseline days</div><div class="mono" style="font-size:20px">${review.baselineCompleteDays}/7</div></div>
-            <div class="card-tight"><div class="mute" style="font-size:11.5px">Mission days</div><div class="mono" style="font-size:20px">${review.missionCompleteDays}/7</div></div>
-            <div class="card-tight"><div class="mute" style="font-size:11.5px">Focus sessions</div><div class="mono" style="font-size:20px">${review.totalSessions}</div></div>
-            <div class="card-tight"><div class="mute" style="font-size:11.5px">Deep work</div><div class="mono" style="font-size:20px">${formatMinutesShort(review.totalMinutes)}</div></div>
-          </div>
+            <div class="grid grid-cols-4">
+              <div class="card-tight"><div class="mute" style="font-size:11.5px">Baseline days</div><div class="mono" style="font-size:20px">${review.baselineCompleteDays}/7</div></div>
+              <div class="card-tight"><div class="mute" style="font-size:11.5px">Mission days</div><div class="mono" style="font-size:20px">${review.missionCompleteDays}/7</div></div>
+              <div class="card-tight"><div class="mute" style="font-size:11.5px">Active days</div><div class="mono" style="font-size:20px">${insights.activeDays}/7</div></div>
+              <div class="card-tight"><div class="mute" style="font-size:11.5px">Tracked time</div><div class="mono" style="font-size:20px">${formatMinutesShort(insights.totalMinutes)}</div></div>
+            </div>
+            <div class="mute mono" style="font-size:11.5px;margin-top:10px">${insights.sessionCount} blocks - ${formatMinutesShort(insights.averageMinutes)} average - ${formatMinutesShort(insights.manualMinutes)} manual - strongest start ${hourLabel(insights.bestHour)}</div>
         </div>
 
         <div class="card" style="margin-bottom:16px">
