@@ -17,6 +17,11 @@ import {
 } from './../logic.js';
 
 const MANUAL_TASK_TEMPLATES = ['Gym', 'Class', 'Reading', 'Interview prep', 'Errands'];
+const FALLBACK_TIMELINE_COLOR = '#9AA29F';
+
+function timelineColor(category) {
+  return /^#[0-9a-f]{6}$/i.test(category?.color || '') ? category.color : FALLBACK_TIMELINE_COLOR;
+}
 
 function csvEscape(val) {
   const s = String(val ?? '');
@@ -53,20 +58,21 @@ function timelineHtml(timeline, store) {
       const blocks = hour.entries
         .map((entry) => {
           const cat = store.getCategory(entry.categoryId);
-          const color = cat?.color || 'var(--mute)';
+          const color = timelineColor(cat);
           const label = escapeHtml(cat ? cat.name : 'Unknown');
-          return `<div class="timeline-block ${entry.status}" style="left:${entry.offsetPct}%;width:${entry.widthPct}%;--block-color:${color}" data-tip="${label} - ${escapeHtml(entryText(entry))}"></div>`;
+          const top = 3 + entry.lane * 12;
+          return `<div class="timeline-block ${entry.status}" style="left:${entry.offsetPct}%;width:${entry.widthPct}%;top:${top}px;--block-color:${color}" data-tip="${label} - ${escapeHtml(entryText(entry))}"></div>`;
         })
         .join('');
       const taskLabels = hour.entries
         .map((entry) => {
           const cat = store.getCategory(entry.categoryId);
-          return `<span class="timeline-task"><span class="timeline-task-dot" style="--block-color:${cat?.color || 'var(--mute)'}"></span>${escapeHtml(cat?.name || 'Unknown')}: ${escapeHtml(entryText(entry))}</span>`;
+          return `<span class="timeline-task"><span class="timeline-task-dot" style="--block-color:${timelineColor(cat)}"></span>${escapeHtml(cat?.name || 'Unknown')}: ${escapeHtml(entryText(entry))}</span>`;
         })
         .join('');
       return `<div class="timeline-hour ${hour.entries.length ? 'has-work' : ''}">
         <div class="timeline-label mono">${hour.label}</div>
-        <div class="timeline-cell"><div class="timeline-track">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
+        <div class="timeline-cell"><div class="timeline-track" style="height:${6 + hour.laneCount * 12}px">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
         <div class="timeline-min mono">${hour.totalMinutes ? `${hour.totalMinutes}m` : ''}</div>
       </div>`;
     })

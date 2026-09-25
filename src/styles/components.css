@@ -857,12 +857,13 @@
 
 .timeline-block {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  min-width: 3px;
+  height: 10px;
+  min-width: 4px;
   border-radius: 2px;
-  background: var(--block-color);
-  box-shadow: 0 0 8px rgba(255, 180, 84, 0.18);
+  background-color: var(--block-color, var(--phosphor));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 180, 84, 0.18);
+  filter: saturate(1.12) brightness(1.08);
+  z-index: 1;
 }
 
 .timeline-block.active {
