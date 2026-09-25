@@ -141,6 +141,7 @@ async function init() {
   buildShell();
   store.subscribe(updateHeaderStats);
   store.subscribeSaveState(updateSaveStatus);
+  window.api.onBeforeQuit(() => store.flush());
   onSessionEvent(() => {
     updateActiveSessionMini();
     syncActiveSessionTicker();

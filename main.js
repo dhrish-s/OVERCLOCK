@@ -45,6 +45,8 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 let focusDeadlineTimer = null;
+let quitReady = false;
+let quitFlushTimer = null;
 
 const userDataDir = app.getPath('userData');
 const dataFilePath = path.join(userDataDir, 'overclock-data.json');
@@ -263,8 +265,21 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => {
+function finishQuit() {
+  if (quitReady) return;
+  quitReady = true;
+  if (quitFlushTimer) clearTimeout(quitFlushTimer);
+  quitFlushTimer = null;
+  app.quit();
+}
+
+app.on('before-quit', (event) => {
   isQuitting = true;
+  if (quitReady || !mainWindow || mainWindow.webContents.isDestroyed()) return;
+  event.preventDefault();
+  if (quitFlushTimer) return;
+  mainWindow.webContents.send('app:flushBeforeQuit');
+  quitFlushTimer = setTimeout(finishQuit, 1500);
 });
 
 // ---------------------------------------------------------------------
@@ -292,6 +307,7 @@ ipcMain.handle('data:save', (_event, data) => {
 });
 
 ipcMain.handle('app:getVersion', () => app.getVersion());
+ipcMain.on('app:flushComplete', finishQuit);
 
 ipcMain.handle('timer:scheduleDeadline', (_event, payload) => {
   if (focusDeadlineTimer) clearTimeout(focusDeadlineTimer);

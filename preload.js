@@ -34,6 +34,15 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('timer:deadline', handler);
     return () => ipcRenderer.removeListener('timer:deadline', handler);
   },
+  onBeforeQuit: (callback) => {
+    ipcRenderer.on('app:flushBeforeQuit', async () => {
+      try {
+        await callback();
+      } finally {
+        ipcRenderer.send('app:flushComplete');
+      }
+    });
+  },
 
   onReminder: (callback) => {
     const handler = (_event, payload) => callback(payload);
