@@ -149,10 +149,10 @@ npm.cmd run dist
 Your activity data lives here:
 
 ```text
-%APPDATA%\overclock-tracker\overclock-data.json
+%APPDATA%\Overclock\overclock-data.json
 ```
 
-Rotating recovery copies live in `%APPDATA%\overclock-tracker\backups\`. You can also export or import a complete JSON backup from **Settings > Data**.
+Rotating recovery copies live in `%APPDATA%\Overclock\backups\`. You can also export or import a complete JSON backup from **Settings > Data**.
 
 Reinstalling the app normally leaves this folder untouched. Exporting a backup before a major Windows change is still a sensible precaution.
 
