@@ -8,7 +8,7 @@ import { store } from './state.js';
 import { icon } from './icons.js';
 import { initReminderBridge } from './notifications.js';
 import { formatDuration } from './logic.js';
-import { getActiveSessionInfo, onSessionEvent } from './timer.js';
+import { getActiveSessionInfo, onSessionEvent, restoreActiveSession, resumeActiveSession } from './timer.js';
 
 import { render as renderDashboard } from './views/dashboard.js';
 import { render as renderCalendar } from './views/calendar.js';
@@ -61,6 +61,7 @@ function buildShell() {
   document.getElementById('win-min').addEventListener('click', () => window.api.minimizeWindow());
   document.getElementById('win-max').addEventListener('click', () => window.api.maximizeWindow());
   document.getElementById('win-close').addEventListener('click', () => window.api.closeWindow());
+  document.getElementById('active-session-mini').addEventListener('click', () => resumeActiveSession(store));
 
   renderNav();
   updateHeaderStats();
@@ -72,7 +73,7 @@ function updateActiveSessionMini() {
   const session = getActiveSessionInfo();
   mini.classList.toggle('hidden', !session);
   if (!session) return;
-  const elapsedSec = Math.max(0, Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000));
+  const elapsedSec = session.elapsedSec ?? Math.max(0, Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000));
   mini.querySelector('.active-session-name').textContent = session.intent || session.categoryName;
   mini.querySelector('.active-session-time').textContent = formatDuration(elapsedSec);
   mini.dataset.tip = session.intent ? session.categoryName : 'Current active session';
@@ -128,6 +129,7 @@ function navigate(routeId) {
 
 async function init() {
   await store.init();
+  restoreActiveSession(store);
   buildShell();
   store.subscribe(updateHeaderStats);
   onSessionEvent(() => {

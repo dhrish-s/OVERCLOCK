@@ -31,12 +31,56 @@ function emit(evt) {
 
 let activeSessionCategoryId = null;
 let activeSessionInfo = null;
+let activeModalOpen = false;
 export function getActiveCategoryId() {
   return activeSessionCategoryId;
 }
 
 export function getActiveSessionInfo() {
-  return activeSessionInfo ? { ...activeSessionInfo } : null;
+  if (!activeSessionInfo) return null;
+  const timer = activeSessionInfo.timer;
+  if (!timer?.state) return { ...activeSessionInfo };
+  const preview = new FocusClock({ mode: timer.mode, workSec: timer.workSec, breakSec: timer.breakSec, state: timer.state });
+  preview.advance();
+  return { ...activeSessionInfo, elapsedSec: preview.snapshot().accumulatedWorkSec };
+}
+
+export function restoreActiveSession(store) {
+  const activeEntries = store.data.worklog
+    .filter((entry) => entry.status === 'active')
+    .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+  const entry = activeEntries[0];
+  if (!entry) return null;
+  for (const duplicate of activeEntries.slice(1)) store.discardSessionLog(duplicate.id);
+
+  const category = store.getCategory(entry.categoryId);
+  if (!category) {
+    store.discardSessionLog(entry.id);
+    return null;
+  }
+  const timer = entry.timer || {
+    mode: category.timerMode,
+    workSec: category.timerWorkSec,
+    breakSec: category.timerBreakSec,
+    state: {
+      phase: 'work',
+      remainingMs: (category.timerWorkSec || 0) * 1000,
+      elapsedMs: 0,
+      accumulatedWorkMs: 0,
+      running: true,
+      lastTickMs: new Date(entry.startedAt).getTime(),
+    },
+  };
+  activeSessionCategoryId = category.id;
+  activeSessionInfo = { logId: entry.id, categoryId: category.id, categoryName: category.name, startedAt: entry.startedAt, intent: entry.intent || '', timer };
+  return getActiveSessionInfo();
+}
+
+export function resumeActiveSession(store) {
+  if (!activeSessionInfo || activeModalOpen) return;
+  const entry = store.data.worklog.find((item) => item.id === activeSessionInfo.logId);
+  const category = entry ? store.getCategory(entry.categoryId) : null;
+  if (entry && category) openFocusModal(category, store, { resumeLog: entry });
 }
 
 let audioCtx = null;
@@ -58,8 +102,8 @@ function beep(freq = 880, durationMs = 180) {
   }
 }
 
-export function openFocusModal(category, store) {
-  if (activeSessionCategoryId) {
+export function openFocusModal(category, store, { resumeLog = null } = {}) {
+  if (activeSessionCategoryId && resumeLog?.id !== activeSessionInfo?.logId) {
     const activeCategory = store.getCategory(activeSessionCategoryId);
     showToast({
       kind: 'info',
@@ -69,6 +113,8 @@ export function openFocusModal(category, store) {
     });
     return;
   }
+  if (activeModalOpen) return;
+  activeModalOpen = true;
 
   const soundOn = () => store.data.settings.soundEnabled !== false;
   const playBeep = (freq) => {
@@ -82,19 +128,24 @@ export function openFocusModal(category, store) {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  const mode = category.timerMode;
+  const restoredTimer = resumeLog ? activeSessionInfo?.timer : null;
+  const mode = restoredTimer?.mode || category.timerMode;
+  const workSec = restoredTimer?.workSec ?? category.timerWorkSec;
+  const breakSec = restoredTimer?.breakSec ?? category.timerBreakSec;
   const hasRing = mode === 'countdown' || mode === 'pomodoro';
 
-  let clock = null;
-  let sessionIntent = '';
+  let clock = restoredTimer
+    ? new FocusClock({ mode, workSec, breakSec, state: restoredTimer.state })
+    : null;
+  let sessionIntent = resumeLog?.intent || '';
   let count = 0;
   let intervalId = null;
   let ended = false;
   let noteStepSeconds = 0;
-  let sessionLog = null;
+  let sessionLog = resumeLog;
 
   function totalForPhase() {
-    return clock.snapshot().phase === 'work' ? category.timerWorkSec : category.timerBreakSec;
+    return clock.snapshot().phase === 'work' ? workSec : breakSec;
   }
 
   function renderIntentStep() {
@@ -115,22 +166,24 @@ export function openFocusModal(category, store) {
       sessionIntent = modal.querySelector('#ft-intent').value.trim();
       clock = new FocusClock({
         mode,
-        workSec: category.timerWorkSec,
-        breakSec: category.timerBreakSec,
+        workSec,
+        breakSec,
       });
       sessionLog = store.beginSessionLog({
         categoryId: category.id,
         intent: sessionIntent,
-        timer: { mode, workSec: category.timerWorkSec, breakSec: category.timerBreakSec, state: clock.exportState() },
+        timer: { mode, workSec, breakSec, state: clock.exportState() },
       });
       emit({
         type: 'start',
         categoryId: category.id,
         session: {
+          logId: sessionLog.id,
           categoryId: category.id,
           categoryName: category.name,
           startedAt: sessionLog.startedAt,
           intent: sessionIntent,
+          timer: sessionLog.timer,
         },
       });
       renderShell();
@@ -183,7 +236,7 @@ export function openFocusModal(category, store) {
       mode === 'pomodoro'
         ? 'Pomodoro - work and break cycle automatically until you end the session.'
         : mode === 'countdown'
-        ? `Countdown from ${Math.round(category.timerWorkSec / 60)} minutes.`
+        ? `Countdown from ${Math.round(workSec / 60)} minutes.`
         : 'Stopwatch - counts up freely.';
     modal.querySelector('.focus-count-row .mute').textContent = category.countLabel;
 
@@ -232,7 +285,7 @@ export function openFocusModal(category, store) {
     const evt = events[events.length - 1];
     if (evt === 'work-complete') {
       playBeep(660);
-      showToast({ kind: 'info', title: 'Break time', body: `Step away for ${Math.round((category.timerBreakSec || 0) / 60)} minutes.`, timeout: 6000 });
+      showToast({ kind: 'info', title: 'Break time', body: `Step away for ${Math.round((breakSec || 0) / 60)} minutes.`, timeout: 6000 });
     } else if (evt === 'break-complete') {
       playBeep(880);
       showToast({ kind: 'info', title: 'Back to focus', body: category.name, timeout: 5000 });
@@ -243,7 +296,10 @@ export function openFocusModal(category, store) {
   }
 
   function checkpointClock() {
-    if (clock && sessionLog) store.checkpointSessionLog(sessionLog.id, clock.exportState());
+    if (!clock || !sessionLog) return;
+    const state = clock.exportState();
+    if (activeSessionInfo?.logId === sessionLog.id) activeSessionInfo.timer.state = state;
+    store.checkpointSessionLog(sessionLog.id, state);
   }
 
   function tick() {
@@ -300,6 +356,7 @@ export function openFocusModal(category, store) {
   function closeAndDiscard() {
     if (ended) return;
     if (!clock) {
+      activeModalOpen = false;
       overlay.remove();
       return;
     }
@@ -312,6 +369,7 @@ export function openFocusModal(category, store) {
     removeClockListeners();
     store.discardSessionLog(sessionLog?.id);
     emit({ type: 'discard', categoryId: category.id });
+    activeModalOpen = false;
     overlay.remove();
   }
 
@@ -392,11 +450,19 @@ export function openFocusModal(category, store) {
 
     modal.querySelector('#ft-done').addEventListener('click', () => {
       removeClockListeners();
+      activeModalOpen = false;
       overlay.remove();
     });
   }
 
-  renderIntentStep();
+  if (resumeLog) {
+    renderShell();
+    tick();
+    startInterval();
+    addClockListeners();
+  } else {
+    renderIntentStep();
+  }
 
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeAndDiscard();

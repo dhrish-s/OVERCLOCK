@@ -30,6 +30,7 @@ import {
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData, Store } from '../src/js/state.js';
+import { getActiveCategoryId, getActiveSessionInfo, restoreActiveSession } from '../src/js/timer.js';
 
 let pass = 0;
 let fail = 0;
@@ -368,6 +369,27 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   });
   store.checkpointSessionLog(entry.id, { elapsedMs: 5000, running: false });
   assertEqual(store.data.worklog[0].timer.state.elapsedMs, 5000, 'active session checkpoints are persisted in the worklog');
+}
+
+{
+  const store = new Store();
+  store._scheduleSave = () => {};
+  store.data.worklog.push({
+    id: 'recover-log',
+    status: 'active',
+    categoryId: 'cat_leetcode',
+    startedAt: new Date(Date.now() - 5000).toISOString(),
+    intent: 'Resume this task',
+    timer: {
+      mode: 'stopwatch',
+      workSec: 0,
+      breakSec: 0,
+      state: { phase: 'work', remainingMs: 0, elapsedMs: 0, accumulatedWorkMs: 0, running: true, lastTickMs: Date.now() - 5000 },
+    },
+  });
+  restoreActiveSession(store);
+  assertEqual(getActiveCategoryId(), 'cat_leetcode', 'startup recovery restores the single-session lock');
+  assertTrue(getActiveSessionInfo().elapsedSec >= 5, 'startup recovery advances persisted focused time');
 }
 
 {
