@@ -416,5 +416,16 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   assertEqual(clock.snapshot().accumulatedWorkSec, 5, 'resumed stopwatch continues from laptop time');
 }
 
+{
+  let now = 1_000;
+  const original = new FocusClock({ mode: 'stopwatch', now: () => now });
+  now += 4_000;
+  original.advance();
+  const restored = new FocusClock({ mode: 'stopwatch', now: () => now, state: original.exportState() });
+  now += 3_000;
+  restored.advance();
+  assertEqual(restored.snapshot().accumulatedWorkSec, 7, 'restored clocks continue from persisted wall time');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

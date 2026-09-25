@@ -11,7 +11,7 @@ function msToSec(ms) {
 }
 
 export class FocusClock {
-  constructor({ mode, workSec = 0, breakSec = 0, now = () => Date.now() }) {
+  constructor({ mode, workSec = 0, breakSec = 0, now = () => Date.now(), state = null }) {
     this.mode = mode;
     this.workMs = clampMs(workSec * 1000);
     this.breakMs = clampMs(breakSec * 1000);
@@ -22,6 +22,25 @@ export class FocusClock {
     this.accumulatedWorkMs = 0;
     this.running = true;
     this.lastTickMs = this.now();
+    if (state) {
+      this.phase = state.phase === 'break' ? 'break' : 'work';
+      this.remainingMs = clampMs(state.remainingMs);
+      this.elapsedMs = clampMs(state.elapsedMs);
+      this.accumulatedWorkMs = clampMs(state.accumulatedWorkMs);
+      this.running = state.running !== false;
+      this.lastTickMs = clampMs(state.lastTickMs || this.lastTickMs);
+    }
+  }
+
+  exportState() {
+    return {
+      phase: this.phase,
+      remainingMs: this.remainingMs,
+      elapsedMs: this.elapsedMs,
+      accumulatedWorkMs: this.accumulatedWorkMs,
+      running: this.running,
+      lastTickMs: this.lastTickMs,
+    };
   }
 
   snapshot() {
