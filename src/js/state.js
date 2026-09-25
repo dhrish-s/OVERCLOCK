@@ -229,7 +229,16 @@ export class Store {
   _scheduleSave() {
     if (this._saveTimer) clearTimeout(this._saveTimer);
     this._setSaveState('pending');
-    this._saveTimer = setTimeout(() => this._saveNow(), 350);
+    this._saveTimer = setTimeout(() => {
+      this._saveTimer = null;
+      this._saveNow();
+    }, 350);
+  }
+
+  async flush() {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = null;
+    await this._saveNow();
   }
 
   async _saveNow() {

@@ -459,6 +459,18 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 }
 
 {
+  const originalWindow = globalThis.window;
+  let saves = 0;
+  globalThis.window = { api: { saveData: async () => { saves += 1; return { ok: true }; } } };
+  const store = new Store();
+  store.mutate((data) => { data.profile.displayName = 'Flush test'; });
+  await store.flush();
+  assertEqual(saves, 1, 'flush saves pending mutations immediately without a duplicate debounce save');
+  if (originalWindow === undefined) delete globalThis.window;
+  else globalThis.window = originalWindow;
+}
+
+{
   let now = 1_000;
   const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
   now += 5_000;
