@@ -206,6 +206,7 @@ export function render(root, store) {
           showToast({ kind: 'levelup', title: 'Level up!', body: `You're now level ${store.data.profile.level}.`, timeout: 9000 });
         }
       }
+      paint();
     })
   );
 
