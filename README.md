@@ -5,7 +5,7 @@
 
   **A private Windows focus tracker that turns a busy day into an honest timeline.**
 
-  [![Release](https://img.shields.io/github/v/release/dhrish-s/Activity-Rewarder?style=flat-square&color=4ade80)](https://github.com/dhrish-s/Activity-Rewarder/releases/latest)
+  [![Release](https://img.shields.io/github/v/release/dhrish-s/OVERCLOCK?style=flat-square&color=4ade80)](https://github.com/dhrish-s/OVERCLOCK/releases/latest)
   [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
   [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
   [![Tests: 118](https://img.shields.io/badge/tests-118%20passing-4ade80?style=flat-square)](#development)
@@ -48,7 +48,7 @@ Most timers remember duration but lose context. Overclock keeps the task, catego
 
 ### Download Version 1
 
-1. Open the [latest GitHub release](https://github.com/dhrish-s/Activity-Rewarder/releases/latest).
+1. Open the [latest GitHub release](https://github.com/dhrish-s/OVERCLOCK/releases/latest).
 2. Download `Overclock.Setup.1.0.0.exe`.
 3. Run the installer and choose an installation folder.
 4. Launch Overclock from the Start menu or desktop shortcut.
@@ -60,8 +60,8 @@ The Version 1 installer is not code-signed. Windows SmartScreen may show an unre
 You need Windows 10 or 11, Git, and the current [Node.js LTS](https://nodejs.org/) release.
 
 ```powershell
-git clone https://github.com/dhrish-s/Activity-Rewarder.git
-cd Activity-Rewarder
+git clone https://github.com/dhrish-s/OVERCLOCK.git
+cd OVERCLOCK
 npm install
 npm start
 ```
