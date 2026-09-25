@@ -15,7 +15,7 @@
     "dist:dir": "electron-builder --win --dir"
   },
   "devDependencies": {
-    "electron": "^42.4.1",
+    "electron": "^42.11.8",
     "electron-builder": "^26.15.4"
   },
   "build": {
@@ -37,7 +37,12 @@
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.ico"
     },
