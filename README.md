@@ -1,185 +1,158 @@
-# Overclock
+<div align="center">
+  <img src="build/icon_master.png" width="112" alt="Overclock app icon">
 
-Overclock is a fast, local-first Windows focus tracker for turning a busy day into a clear record of what actually happened.
+  # Overclock
 
-Start a focused task, backfill work you forgot to track, inspect every hour of the day, and build momentum with streaks, coins, stars, and rewards. No account, cloud service, subscription, or telemetry required.
+  **A private Windows focus tracker that turns a busy day into an honest timeline.**
 
-## Highlights
+  [![Release](https://img.shields.io/github/v/release/dhrish-s/Activity-Rewarder?style=flat-square&color=4ade80)](https://github.com/dhrish-s/Activity-Rewarder/releases/latest)
+  [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
+  [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
+  [![Tests: 118](https://img.shields.io/badge/tests-118%20passing-4ade80?style=flat-square)](#development)
+</div>
 
-- Custom categories for LeetCode, applications, system design, open source, or anything else
-- Stopwatch, countdown, and Pomodoro focus sessions
-- One active timer at a time, with a live session bar in the title bar
-- Automatic worklog entries when a session starts
-- Manual entries for forgotten or one-off work
-- Quick templates for Gym, Class, Reading, Interview prep, and Errands
-- Editable and removable finished worklog entries
-- A readable 24-hour timesheet with tasks shown inside hourly rows
-- Idle-gap detection between tracked work blocks
-- Flexible day modes with baseline and focus targets
-- Calendar history, statistics, weekly review, streaks, coins, stars, and rewards
-- Windows tray support, reminders, and optional launch at startup
-- Local JSON storage with rotating backups
+Overclock is built for students, engineers, and anyone juggling focused work across a full day. Start a timer when you sit down, add forgotten work later, and use the worklog to see where your time actually went.
 
-## Requirements
+Everything stays on your computer. There is no account, cloud sync, subscription, analytics service, or telemetry.
 
-- Windows 10 or Windows 11, 64-bit
-- [Node.js](https://nodejs.org/) with npm for development and local builds
-- Git if you are cloning the repository
+<p align="center">
+  <img src="docs/images/overclock-dashboard.png" width="100%" alt="Overclock dashboard showing daily goals and focus tracking">
+</p>
 
-Using the current Node.js LTS release is recommended.
+## Why Overclock
 
-## Get The Code
+Most timers remember duration but lose context. Overclock keeps the task, category, time range, daily target, and outcome together. The result is a useful record rather than a pile of disconnected stopwatch totals.
 
-Open PowerShell and run:
+| Plan the day | Track the work | Learn from it |
+| --- | --- | --- |
+| Choose balanced, focused, or recovery targets | Run one stopwatch, countdown, or Pomodoro session at a time | Review a 24-hour timeline and idle gaps |
+| Set category goals that fit the day | Add one-off and forgotten work manually | Compare weekly activity and category totals |
+| Keep minimum goals realistic | See the active task from every screen | Build streaks and spend earned rewards |
+
+## Features
+
+- **One active session:** Starting a timer locks the other task controls until the session ends.
+- **Automatic worklog:** Timer sessions appear in the hourly timeline without duplicate entry.
+- **Manual time entry:** Backfill a task with its category, date, start time, end time, and note.
+- **Quick templates:** Add common activities such as Gym, Class, Reading, Interview prep, and Errands.
+- **Editable history:** Correct or remove finished manual entries when plans change.
+- **Idle gap detection:** See untracked periods between work blocks instead of guessing where the day went.
+- **Flexible focus tools:** Use stopwatch, countdown, or Pomodoro modes for each category.
+- **Daily modes:** Switch between baseline goals, focused targets, and recovery days.
+- **Weekly insights:** Review time, sessions, completed work, and category patterns.
+- **Motivation that stays optional:** Earn streaks, coins, stars, and personal rewards.
+- **Restart recovery:** Restore interrupted sessions and protect local data with rotating backups.
+- **Quiet background use:** Keep reminders running from the Windows tray without leaving the main window open.
+
+## Install Overclock
+
+### Download Version 1
+
+1. Open the [latest GitHub release](https://github.com/dhrish-s/Activity-Rewarder/releases/latest).
+2. Download `Overclock.Setup.1.0.0.exe`.
+3. Run the installer and choose an installation folder.
+4. Launch Overclock from the Start menu or desktop shortcut.
+
+The Version 1 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+
+### Run From Source
+
+You need Windows 10 or 11, Git, and the current [Node.js LTS](https://nodejs.org/) release.
 
 ```powershell
 git clone https://github.com/dhrish-s/Activity-Rewarder.git
 cd Activity-Rewarder
 npm install
-```
-
-`npm install` downloads the Electron development tools used by the project. You normally only need to run it after cloning or when dependencies change.
-
-## Run The App
-
-Start the normal local app:
-
-```powershell
 npm start
 ```
 
-Start it with the development flag:
+`npm start` opens the app directly from the repository. It does not install anything into Windows.
+
+## Everyday Flow
+
+1. Pick a day mode that matches your available energy and priorities.
+2. Start a category session with a concrete intention.
+3. Finish the session and record the result.
+4. Add offline or forgotten work through the manual entry form.
+5. Read the hourly worklog to find productive blocks and empty gaps.
+6. Check the weekly view for patterns worth keeping or changing.
+
+Closing the window keeps Overclock in the system tray. Choose **Quit** from the tray menu when you want to stop it completely.
+
+## Development
+
+Install dependencies once:
 
 ```powershell
-npm run dev
+npm install
 ```
 
-Both commands open Electron directly from the source folder. They do not install Overclock into Windows.
+Then use the command that matches the job:
 
-## Run Tests
+| Command | What it does |
+| --- | --- |
+| `npm start` | Run the Electron app from source |
+| `npm run dev` | Run with the development flag enabled |
+| `npm test` | Run logic and storage recovery tests |
+| `npm run dist:dir` | Create an unpacked Windows build for quick testing |
+| `npm run dist` | Create the Windows installer |
 
-Run the logic test suite:
-
-```powershell
-npm test
-```
-
-A successful run ends with output similar to:
+A healthy test run currently finishes with:
 
 ```text
 114 passed, 0 failed
 4 storage recovery checks passed
 ```
 
-## Build Without Installing
+The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.0.exe`.
 
-Create an unpacked Windows build:
-
-```powershell
-npm run dist:dir
-```
-
-Then launch:
-
-```text
-dist\win-unpacked\Overclock.exe
-```
-
-This is the quickest way to test the real packaged application without running an installer.
-
-## Build And Install On Windows
-
-Create the Windows installer:
+If PowerShell blocks `npm.ps1`, use the Windows command shim instead:
 
 ```powershell
-npm run dist
+npm.cmd test
+npm.cmd run dist
 ```
 
-The installer is written to the `dist` folder and will have a name similar to:
+## Local Data
 
-```text
-Overclock Setup 1.0.0.exe
-```
-
-To install:
-
-1. Open the `dist` folder.
-2. Run `Overclock Setup 1.0.0.exe`.
-3. Choose the installation folder when prompted.
-4. Finish setup and launch Overclock from the desktop or Start menu shortcut.
-
-The installer is not currently code-signed. Windows SmartScreen may show an Unknown Publisher message for a personal build. If you built the project yourself and trust it, select **More info**, then **Run anyway**.
-
-## Command Reference
-
-| Command | Purpose |
-| --- | --- |
-| `npm install` | Install project dependencies |
-| `npm start` | Run Electron from source |
-| `npm run dev` | Run Electron with the development flag |
-| `npm test` | Run the logic tests |
-| `npm run dist:dir` | Build an unpacked Windows app for quick testing |
-| `npm run dist` | Build the Windows installer |
-
-## Local Data And Backups
-
-Overclock stores its data locally in Electron's Windows user-data directory:
+Your activity data lives here:
 
 ```text
 %APPDATA%\overclock-tracker\overclock-data.json
 ```
 
-Rotating backups are stored in:
+Rotating recovery copies live in `%APPDATA%\overclock-tracker\backups\`. You can also export or import a complete JSON backup from **Settings > Data**.
+
+Reinstalling the app normally leaves this folder untouched. Exporting a backup before a major Windows change is still a sensible precaution.
+
+## Project Structure
 
 ```text
-%APPDATA%\overclock-tracker\backups\
+main.js            Electron window, tray, reminders, and secure IPC
+preload.js         Narrow bridge between Electron and the interface
+storage.js         Local data recovery and backup loading
+src/js/state.js    Application state and persistence flow
+src/js/logic.js    Testable dates, goals, rewards, and worklog rules
+src/js/views/      Dashboard, worklog, calendar, rewards, and settings
+src/styles/        Layout, components, and animation styles
+test/              Logic and storage recovery tests
 ```
 
-You can also export and import a full JSON backup from **Settings > Data**. Rebuilding or reinstalling the app should not remove the user-data folder, but exporting a backup before major system changes is still a good habit.
+The renderer runs with context isolation, sandboxing, and Node integration disabled. The app loads only bundled local files and does not make network requests.
 
-## Everyday Workflow
+## Contributing
 
-1. Pick a day mode based on what matters today.
-2. Start a category session and write a concrete intent.
-3. Finish the session and record what you completed.
-4. Add forgotten or offline work manually when needed.
-5. Review the hourly Work Log to spot productive blocks and idle gaps.
-6. Keep the streak alive and spend earned rewards without guilt.
+Issues and focused pull requests are welcome. Before opening a pull request:
 
-Closing the main window keeps Overclock available in the Windows tray so reminders can continue. Use **Quit** from the tray menu when you want to fully stop the app.
+1. Keep the app local-first and lightweight.
+2. Match the existing interface and state patterns.
+3. Add tests for behavior that can be isolated from the UI.
+4. Run `npm test` and package with `npm run dist:dir`.
 
-## Troubleshooting
+## License
 
-### `npm` is not recognized
+Overclock is open source under the [MIT License](LICENSE). You may use, modify, and distribute it under the terms in that file.
 
-Install Node.js, close PowerShell, open it again, and verify:
-
-```powershell
-node --version
-npm --version
-```
-
-### PowerShell blocks `npm.ps1`
-
-Use the Windows command shim:
-
-```powershell
-npm.cmd install
-npm.cmd start
-```
-
-The same form works for every command, such as `npm.cmd test` or `npm.cmd run dist`.
-
-### The build cannot download Electron
-
-Check the internet connection, VPN, proxy, firewall, or antivirus rules, then retry the build. Electron Builder may need to download the Windows Electron runtime during packaging.
-
-### The app appears to stay open after closing
-
-That is expected tray behavior. Open it again from the tray icon, or choose **Quit** from the tray menu to stop it completely.
-
-## Project Philosophy
-
-Overclock should help you notice your day, not become another job to maintain. It stays compact, responsive, private, and useful in the background, while still making progress feel satisfying.
-
-Build momentum. Keep the record honest. Then go claim a reward.
+<div align="center">
+  <sub>Built to make focused work visible without turning tracking into another job.</sub>
+</div>
