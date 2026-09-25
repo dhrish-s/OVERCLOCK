@@ -8,7 +8,7 @@
   [![Release](https://img.shields.io/github/v/release/dhrish-s/OVERCLOCK?style=flat-square&color=4ade80)](https://github.com/dhrish-s/OVERCLOCK/releases/latest)
   [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
   [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
-  [![Tests: 118](https://img.shields.io/badge/tests-118%20passing-4ade80?style=flat-square)](#development)
+  [![Tests: 119](https://img.shields.io/badge/tests-119%20passing-4ade80?style=flat-square)](#development)
 </div>
 
 Overclock is built for students, engineers, and anyone juggling focused work across a full day. Start a timer when you sit down, add forgotten work later, and use the worklog to see where your time actually went.
@@ -131,7 +131,7 @@ Then use the command that matches the job:
 A healthy test run currently finishes with:
 
 ```text
-114 passed, 0 failed
+115 passed, 0 failed
 4 storage recovery checks passed
 ```
 
