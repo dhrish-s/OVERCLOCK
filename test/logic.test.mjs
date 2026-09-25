@@ -1,5 +1,6 @@
 import {
   dateKey,
+  todayKey,
   addDays,
   diffDays,
   updateStreakForToday,
@@ -28,7 +29,7 @@ import {
   worklogIdleGaps,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
-import { createDefaultData } from '../src/js/state.js';
+import { createDefaultData, Store } from '../src/js/state.js';
 
 let pass = 0;
 let fail = 0;
@@ -348,6 +349,15 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   assertEqual(data.dailyPlanning.defaultModeId, 'balanced', 'balanced is the default day mode');
 }
 // ---- focus clock / background-safe timing ----
+{
+  const store = new Store();
+  store._scheduleSave = () => {};
+  store.logSession({ categoryId: 'cat_leetcode', seconds: 60, count: 1, completed: true });
+  const progress = store.data.days[todayKey()].categoryProgress.cat_leetcode;
+  assertEqual(progress.goalMet, true, 'session progress uses the selected day mode target');
+  assertEqual(store.data.streaks.cat_leetcode.current, 1, 'category streak uses the selected day mode target');
+}
+
 {
   let now = 1_000;
   const clock = new FocusClock({ mode: 'stopwatch', now: () => now });

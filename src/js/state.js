@@ -9,6 +9,7 @@ import {
   dateKeyFromIso,
   updateStreakForToday,
   dailyMissionStatus,
+  targetForCategory,
   applyXp,
   randomInRange,
 } from './logic.js';
@@ -176,7 +177,7 @@ function ensureStreakShape(data, categoryId) {
   return data.streaks[categoryId];
 }
 
-class Store {
+export class Store {
   constructor() {
     this.data = createDefaultData();
     this.listeners = new Set();
@@ -283,11 +284,9 @@ class Store {
         completed: !!completed,
       });
 
-      if (category.goalType === 'count') {
-        prog.goalMet = prog.count >= category.goalValue;
-      } else {
-        prog.goalMet = prog.minutes >= category.goalValue;
-      }
+      const target = targetForCategory(category, dayMode);
+      const actual = target.goalType === 'count' ? prog.count : prog.minutes;
+      prog.goalMet = actual >= target.goalValue;
 
       const coins = randomInRange(category.coinMin, category.coinMax);
       prog.coinsEarned = (prog.coinsEarned || 0) + coins;
