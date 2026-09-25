@@ -118,7 +118,11 @@ export function openFocusModal(category, store) {
         workSec: category.timerWorkSec,
         breakSec: category.timerBreakSec,
       });
-      sessionLog = store.beginSessionLog({ categoryId: category.id, intent: sessionIntent });
+      sessionLog = store.beginSessionLog({
+        categoryId: category.id,
+        intent: sessionIntent,
+        timer: { mode, workSec: category.timerWorkSec, breakSec: category.timerBreakSec, state: clock.exportState() },
+      });
       emit({
         type: 'start',
         categoryId: category.id,
@@ -238,18 +242,27 @@ export function openFocusModal(category, store) {
     }
   }
 
+  function checkpointClock() {
+    if (clock && sessionLog) store.checkpointSessionLog(sessionLog.id, clock.exportState());
+  }
+
   function tick() {
-    handleClockEvents(clock.advance());
+    const events = clock.advance();
+    handleClockEvents(events);
+    if (events.length) checkpointClock();
     updateDisplay();
+    return events;
   }
 
   function toggleRunning() {
     clock.toggle();
+    checkpointClock();
     updateDisplay();
   }
 
   function resetClock() {
     clock.reset();
+    checkpointClock();
     updateDisplay();
   }
 
@@ -265,6 +278,8 @@ export function openFocusModal(category, store) {
 
   function syncFromLaptopClock() {
     if (document.hidden) {
+      const events = tick();
+      if (!events.length) checkpointClock();
       stopInterval();
       return;
     }
