@@ -119,7 +119,6 @@ build/icon.png, icon.ico     App icon (original geometric mark, generated for th
 
 ## Known limitations / ideas for later
 
-- The reward "claim" flow currently has no undo - a misclick spends real coins. A confirmation step would be a small, safe addition.
 - Historical mission calculations still use current category target definitions. Persisting per-day target snapshots would make long-term reports immutable when goals change.
 - Automatic reward-bearing session rows are intentionally locked in Work Log because editing them independently would desynchronize coins, XP, streaks, and daily progress.
 - Stats trends are computed at render time, which is fine at this scale but would want indexed aggregation if the data file grows into years of history.
