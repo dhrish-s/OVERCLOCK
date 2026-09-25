@@ -6,6 +6,7 @@
 
 import { store } from './state.js';
 import { icon } from './icons.js';
+import { escapeHtml } from './dom.js';
 import { initReminderBridge } from './notifications.js';
 import { formatDuration } from './logic.js';
 import { getActiveSessionInfo, onSessionEvent, restoreActiveSession, resumeActiveSession } from './timer.js';
@@ -161,7 +162,7 @@ init().catch((err) => {
     <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0e13;color:#e7e9ee;font-family:'Segoe UI',system-ui,sans-serif;padding:40px;text-align:center">
       <div>
         <div style="font-size:18px;font-weight:600;margin-bottom:8px">Overclock failed to start</div>
-        <div style="color:#80889b;font-size:13px;font-family:Consolas,monospace">${String(err && err.message ? err.message : err)}</div>
+        <div style="color:#80889b;font-size:13px;font-family:Consolas,monospace">${escapeHtml(err && err.message ? err.message : err)}</div>
       </div>
     </div>
   `;

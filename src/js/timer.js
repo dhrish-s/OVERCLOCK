@@ -7,6 +7,7 @@
 // dashboard.
 
 import { icon } from './icons.js';
+import { escapeHtml } from './dom.js';
 import { FocusClock } from './focusClock.js';
 import { formatDuration } from './logic.js';
 import { showToast } from './notifications.js';
@@ -151,7 +152,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
 
   function renderIntentStep() {
     modal.innerHTML = `
-      <div class="modal-title">Start ${category.name}</div>
+      <div class="modal-title">Start ${escapeHtml(category.name)}</div>
       <div class="modal-sub">Name the concrete thing you are about to finish.</div>
       <div class="field">
         <label for="ft-intent">Session intent</label>
@@ -410,7 +411,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     window.api.cancelTimerDeadline();
     removeClockListeners();
     modal.innerHTML = `
-      <div class="modal-title">Wrap up - ${category.name}</div>
+      <div class="modal-title">Wrap up - ${escapeHtml(category.name)}</div>
       <div class="modal-sub mono"></div>
       <div class="field" style="margin-bottom:12px">
         <label>Intent</label>

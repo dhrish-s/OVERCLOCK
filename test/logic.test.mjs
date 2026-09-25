@@ -33,6 +33,7 @@ import {
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData, Store } from '../src/js/state.js';
 import { getActiveCategoryId, getActiveSessionInfo, restoreActiveSession } from '../src/js/timer.js';
+import { escapeHtml } from '../src/js/dom.js';
 
 let pass = 0;
 let fail = 0;
@@ -54,6 +55,14 @@ function assertTrue(cond, label) {
     fail++;
     console.error(`FAIL: ${label}`);
   }
+}
+
+{
+  assertEqual(
+    escapeHtml('<img src=x onerror="alert(1)">'),
+    '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;',
+    'user text is escaped before HTML interpolation'
+  );
 }
 
 // ---- date helpers ----
