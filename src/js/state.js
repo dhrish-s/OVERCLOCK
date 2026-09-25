@@ -182,8 +182,10 @@ export class Store {
   constructor() {
     this.data = createDefaultData();
     this.listeners = new Set();
+    this.saveListeners = new Set();
     this._saveTimer = null;
     this._ready = false;
+    this.saveState = { status: 'saved', error: null };
   }
 
   async init() {
@@ -203,6 +205,16 @@ export class Store {
     return () => this.listeners.delete(fn);
   }
 
+  subscribeSaveState(fn) {
+    this.saveListeners.add(fn);
+    return () => this.saveListeners.delete(fn);
+  }
+
+  _setSaveState(status, error = null) {
+    this.saveState = { status, error };
+    for (const fn of this.saveListeners) fn(this.saveState);
+  }
+
   _emit() {
     for (const fn of this.listeners) fn(this.data);
   }
@@ -216,13 +228,17 @@ export class Store {
 
   _scheduleSave() {
     if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._setSaveState('pending');
     this._saveTimer = setTimeout(() => this._saveNow(), 350);
   }
 
   async _saveNow() {
     try {
-      await window.api.saveData(this.data);
+      const result = await window.api.saveData(this.data);
+      if (!result?.ok) throw new Error(result?.error || 'The data file could not be saved.');
+      this._setSaveState('saved');
     } catch (err) {
+      this._setSaveState('error', String(err && err.message ? err.message : err));
       console.error('Save failed', err);
     }
   }

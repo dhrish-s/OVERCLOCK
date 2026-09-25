@@ -415,6 +415,19 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 }
 
 {
+  const originalWindow = globalThis.window;
+  const originalConsoleError = console.error;
+  globalThis.window = { api: { saveData: async () => ({ ok: false, error: 'Disk full' }) } };
+  console.error = () => {};
+  const store = new Store();
+  await store._saveNow();
+  assertEqual(store.saveState, { status: 'error', error: 'Disk full' }, 'failed IPC saves remain visible in Store state');
+  console.error = originalConsoleError;
+  if (originalWindow === undefined) delete globalThis.window;
+  else globalThis.window = originalWindow;
+}
+
+{
   let now = 1_000;
   const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
   now += 5_000;
