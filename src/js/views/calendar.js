@@ -95,9 +95,9 @@ export function render(root, store) {
   function buildDetail() {
     const data = store.data;
     const day = data.days[selectedKey];
-    const cats = store.activeCategories();
-    const missionStatus = dailyMissionStatus(day, cats, store.dayModeForDate(selectedKey));
     const logsForDay = worklogEntriesForDate(data.worklog, selectedKey);
+    const cats = data.categories.filter((category) => !category.archived || day?.categoryProgress?.[category.id] || logsForDay.some((entry) => entry.categoryId === category.id));
+    const missionStatus = dailyMissionStatus(day, cats.map((category) => ({ ...category, archived: false })), store.dayModeForDate(selectedKey));
 
     const rows = missionStatus.missions
       .map(({ category: c, target, progress }) => {

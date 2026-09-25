@@ -263,7 +263,7 @@ export function render(root, store) {
 
   function paint() {
     const data = store.data;
-    const cats = store.activeCategories();
+    const cats = [...store.data.categories].sort((a, b) => a.order - b.order);
     const entries = filteredEntries();
     const completed = entries.filter((entry) => entry.status === 'completed');
     const totalMinutes = completed.reduce((sum, entry) => sum + Math.round((entry.durationSec || 0) / 60), 0);
