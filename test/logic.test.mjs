@@ -395,6 +395,17 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 {
   const store = new Store();
   store._scheduleSave = () => {};
+  store.data.profile.coins = 100;
+  const outcome = store.claimReward('small');
+  const balanceAfterClaim = store.data.profile.coins;
+  assertEqual(store.undoRewardClaim(outcome.claim.id).ok, true, 'reward claims can be undone');
+  assertEqual(store.data.profile.coins, balanceAfterClaim + outcome.claim.cost, 'undoing a reward refunds its exact cost');
+  assertEqual(store.data.rewards.history.length, 0, 'undoing a reward removes its claim history row');
+}
+
+{
+  const store = new Store();
+  store._scheduleSave = () => {};
   const entry = store.beginSessionLog({
     categoryId: 'cat_leetcode',
     intent: 'Recovery test',

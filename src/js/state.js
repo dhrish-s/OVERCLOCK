@@ -543,17 +543,31 @@ export class Store {
 
       d.profile[balanceKey] -= reward.cost;
       d.rewards[usedKey] = cycleReset ? [reward.id] : [...usedIds, reward.id];
-      d.rewards.history.unshift({
+      const claim = {
         id: uid('claim'),
         rewardId: reward.id,
         label: reward.label,
         tier,
         cost: reward.cost,
         claimedAt: new Date().toISOString(),
-      });
-      outcome = { ok: true, reward, cycleReset };
+      };
+      d.rewards.history.unshift(claim);
+      outcome = { ok: true, reward, claim, cycleReset };
     });
     return outcome;
+  }
+
+  undoRewardClaim(claimId) {
+    const claim = this.data.rewards.history.find((item) => item.id === claimId);
+    if (!claim) return { ok: false };
+    this.mutate((data) => {
+      const balanceKey = claim.tier === 'big' ? 'stars' : 'coins';
+      const usedKey = claim.tier === 'big' ? 'usedBigIds' : 'usedSmallIds';
+      data.profile[balanceKey] += claim.cost;
+      data.rewards[usedKey] = (data.rewards[usedKey] || []).filter((id) => id !== claim.rewardId);
+      data.rewards.history = data.rewards.history.filter((item) => item.id !== claimId);
+    });
+    return { ok: true };
   }
 
   importData(parsed) {
