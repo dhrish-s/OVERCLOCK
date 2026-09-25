@@ -427,3 +427,13 @@ export function worklogIdleGaps(entries, key, { minMinutes = 30 } = {}, now = ne
     }];
   });
 }
+
+export function overlappingWorklogEntries(entries, startedAt, endedAt, excludeId = null, now = new Date()) {
+  const startMs = new Date(startedAt).getTime();
+  const endMs = new Date(endedAt).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return [];
+  return (entries || []).filter((entry) => {
+    if (entry.id === excludeId || entry.status === 'discarded') return false;
+    return entryStartMs(entry) < endMs && entryEndMs(entry, now.getTime()) > startMs;
+  });
+}

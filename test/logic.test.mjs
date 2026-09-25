@@ -27,6 +27,7 @@ import {
   filterWorklogEntries,
   buildHourlyTimeline,
   worklogIdleGaps,
+  overlappingWorklogEntries,
 } from '../src/js/logic.js';
 import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData, Store } from '../src/js/state.js';
@@ -245,6 +246,8 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
     '2026-06-17'
   );
   assertEqual(gaps.map((gap) => gap.durationMinutes), [60], 'worklogIdleGaps reports meaningful gaps between tracked blocks');
+  const overlaps = overlappingWorklogEntries(dayEntries, new Date(2026, 5, 17, 9, 30), new Date(2026, 5, 17, 10, 30));
+  assertEqual(overlaps.map((entry) => entry.id), ['a'], 'overlappingWorklogEntries detects intersecting work blocks');
 }
 
 // ---- month matrix ----
