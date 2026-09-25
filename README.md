@@ -77,14 +77,14 @@ The gallery below uses synthetic sample activity created only for these screensh
 
 ## Install Overclock
 
-### Download Version 1
+### Download Version 1.0.1
 
 1. Open the [latest GitHub release](https://github.com/dhrish-s/OVERCLOCK/releases/latest).
-2. Download `Overclock.Setup.1.0.0.exe`.
+2. Download `Overclock.Setup.1.0.1.exe`.
 3. Run the installer and choose an installation folder.
 4. Launch Overclock from the Start menu or desktop shortcut.
 
-The Version 1 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+The Version 1.0.1 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
 
 ### Run From Source
 
@@ -135,7 +135,7 @@ A healthy test run currently finishes with:
 4 storage recovery checks passed
 ```
 
-The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.0.exe`.
+The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.1.exe`.
 
 If PowerShell blocks `npm.ps1`, use the Windows command shim instead:
 

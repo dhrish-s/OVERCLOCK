@@ -1,7 +1,7 @@
 {
   "name": "overclock-tracker",
   "productName": "Overclock",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A local, offline daily execution console for grad-school + job-search grind: LeetCode, applications, system design study, and open source work, with timers, streaks, coins, and rewards.",
   "main": "main.js",
   "private": true,
