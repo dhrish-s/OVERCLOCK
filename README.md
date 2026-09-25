@@ -86,18 +86,51 @@ The gallery below uses synthetic sample activity created only for these screensh
 
 The Version 1.0.1 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
 
-### Run From Source
+### Install Locally From Source
 
-You need Windows 10 or 11, Git, and the current [Node.js LTS](https://nodejs.org/) release.
+Use this path when you want to build Overclock yourself and install that build on your laptop.
+
+You need:
+
+- Windows 10 or Windows 11, 64-bit
+- [Git](https://git-scm.com/download/win)
+- The current [Node.js LTS](https://nodejs.org/) release, which includes npm
+
+Open PowerShell and clone the project:
 
 ```powershell
 git clone https://github.com/dhrish-s/OVERCLOCK.git
 cd OVERCLOCK
+```
+
+Install the project dependencies and verify the code:
+
+```powershell
 npm install
+npm test
+```
+
+Build the Windows installer:
+
+```powershell
+npm run dist
+```
+
+When the build finishes, install the app by opening:
+
+```text
+dist\Overclock Setup 1.0.1.exe
+```
+
+Complete the setup wizard, then launch Overclock from the Start menu or desktop shortcut. Your activity data will be stored separately in `%APPDATA%\Overclock`, so rebuilding the source does not erase your existing records.
+
+To try the app before installing it, run:
+
+```powershell
 npm start
 ```
 
-`npm start` opens the app directly from the repository. It does not install anything into Windows.
+This opens Overclock directly from the repository. You can also run `npm run dist:dir` to create a packaged test build at `dist\win-unpacked\Overclock.exe` without creating an installer.
 
 ## Everyday Flow
 
