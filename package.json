@@ -10,7 +10,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "test": "node test/logic.test.mjs",
+    "test": "node test/logic.test.mjs && node test/storage.test.cjs",
     "dist": "electron-builder --win",
     "dist:dir": "electron-builder --win --dir"
   },
@@ -25,6 +25,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "storage.js",
       "src/**/*",
       "package.json",
       "build/icon.png"

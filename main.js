@@ -26,6 +26,7 @@ const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, shell, dialog } =
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
+const { loadDataWithRecovery } = require('./storage');
 
 const IS_WINDOWS = process.platform === 'win32';
 if (IS_WINDOWS) {
@@ -56,15 +57,9 @@ function ensureDirs() {
 }
 
 function safeReadData() {
-  try {
-    if (!fs.existsSync(dataFilePath)) return null;
-    const raw = fs.readFileSync(dataFilePath, 'utf-8');
-    if (!raw.trim()) return null;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('[overclock] failed to read data file:', err);
-    return null;
-  }
+  return loadDataWithRecovery(dataFilePath, backupsDir, (err) => {
+    console.error('[overclock] failed to read a data snapshot:', err);
+  });
 }
 
 function rotateBackups() {
