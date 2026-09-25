@@ -21,7 +21,8 @@ function poolListHtml(pool, balance, balanceUnit) {
     .join('');
 }
 
-function openRevealModal(reward, tier) {
+function openRevealModal(outcome, tier, store) {
+  const reward = outcome.reward;
   const overlay = document.createElement('div');
   overlay.className = 'overlay fade-in';
   overlay.innerHTML = `
@@ -31,6 +32,7 @@ function openRevealModal(reward, tier) {
         <div class="reveal-label"></div>
         <div class="mute" style="font-size:12.5px">${tier === 'big' ? 'Big reward' : 'Small reward'} claimed - enjoy it.</div>
         <button class="btn btn-primary btn-block" id="reveal-done">Nice</button>
+        <button class="btn btn-ghost btn-block" id="reveal-undo">Undo claim</button>
       </div>
     </div>
   `;
@@ -38,6 +40,10 @@ function openRevealModal(reward, tier) {
   document.body.appendChild(overlay);
   burstConfetti(tier === 'big' ? 46 : 26);
   overlay.querySelector('#reveal-done').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#reveal-undo').addEventListener('click', () => {
+    store.undoRewardClaim(outcome.claim.id);
+    overlay.remove();
+  });
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) overlay.remove();
   });
@@ -106,7 +112,7 @@ export function render(root, store) {
         flashInsufficient(root, 'coins');
         return;
       }
-      openRevealModal(outcome.reward, 'small');
+      openRevealModal(outcome, 'small', store);
     });
     root.querySelector('#claim-big').addEventListener('click', () => {
       const outcome = store.claimReward('big');
@@ -114,7 +120,7 @@ export function render(root, store) {
         flashInsufficient(root, 'stars');
         return;
       }
-      openRevealModal(outcome.reward, 'big');
+      openRevealModal(outcome, 'big', store);
     });
   }
 
