@@ -8,7 +8,7 @@
   [![Release](https://img.shields.io/github/v/release/dhrish-s/OVERCLOCK?style=flat-square&color=4ade80)](https://github.com/dhrish-s/OVERCLOCK/releases/latest)
   [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
   [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
-  [![Tests: 119](https://img.shields.io/badge/tests-119%20passing-4ade80?style=flat-square)](#development)
+  [![Tests: 121](https://img.shields.io/badge/tests-121%20passing-4ade80?style=flat-square)](#development)
 </div>
 
 Overclock is built for students, engineers, and anyone juggling focused work across a full day. Start a timer when you sit down, add forgotten work later, and use the worklog to see where your time actually went.
@@ -77,14 +77,22 @@ The gallery below uses synthetic sample activity created only for these screensh
 
 ## Install Overclock
 
-### Download Version 1.0.1
+### Download Version 1.0.2
 
 1. Open the [latest GitHub release](https://github.com/dhrish-s/OVERCLOCK/releases/latest).
-2. Download `Overclock.Setup.1.0.1.exe`.
+2. Download `Overclock.Setup.1.0.2.exe`.
 3. Run the installer and choose an installation folder.
 4. Launch Overclock from the Start menu or desktop shortcut.
 
-The Version 1.0.1 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+The Version 1.0.2 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+
+### What Is New in Version 1.0.2
+
+- Worklog timeline bars are brighter and easier to distinguish from the track.
+- Overlapping manual or historical entries use separate lanes instead of covering each other.
+- Short entries keep a visible minimum width.
+- Invalid imported category colors fall back to a readable neutral color.
+- Timeline geometry now has dedicated overlap regression tests.
 
 ### Install Locally From Source
 
@@ -119,7 +127,7 @@ npm run dist
 When the build finishes, install the app by opening:
 
 ```text
-dist\Overclock Setup 1.0.1.exe
+dist\Overclock Setup 1.0.2.exe
 ```
 
 Complete the setup wizard, then launch Overclock from the Start menu or desktop shortcut. Your activity data will be stored separately in `%APPDATA%\Overclock`, so rebuilding the source does not erase your existing records.
@@ -164,11 +172,11 @@ Then use the command that matches the job:
 A healthy test run currently finishes with:
 
 ```text
-115 passed, 0 failed
+117 passed, 0 failed
 4 storage recovery checks passed
 ```
 
-The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.1.exe`.
+The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.2.exe`.
 
 If PowerShell blocks `npm.ps1`, use the Windows command shim instead:
 
