@@ -247,6 +247,21 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   const timeline = buildHourlyTimeline(dayEntries, '2026-06-17', new Date(2026, 5, 17, 12, 0));
   assertEqual(timeline[9].entries.length, 1, 'buildHourlyTimeline places an entry in its starting hour');
   assertEqual(timeline[9].totalMinutes, 45, 'buildHourlyTimeline totals minutes inside each hour');
+  const overlapTimeline = buildHourlyTimeline(
+    [
+      ...dayEntries,
+      {
+        id: 'overlap',
+        categoryId: 'jobs',
+        startedAt: new Date(2026, 5, 17, 9, 30).toISOString(),
+        endedAt: new Date(2026, 5, 17, 9, 50).toISOString(),
+      },
+    ],
+    '2026-06-17',
+    new Date(2026, 5, 17, 12, 0)
+  );
+  assertEqual(overlapTimeline[9].laneCount, 2, 'buildHourlyTimeline creates separate lanes for overlapping entries');
+  assertEqual(overlapTimeline[9].entries.map((entry) => entry.lane), [0, 1], 'overlapping timeline entries do not cover each other');
   const gaps = worklogIdleGaps(
     [
       ...dayEntries,
