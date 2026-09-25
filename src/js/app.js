@@ -36,6 +36,7 @@ function buildShell() {
       <div id="titlebar">
         <div class="brand"><span class="dot"></span>OVERCLOCK</div>
         <div class="spacer"></div>
+        <div class="save-status hidden" id="save-status">${icon('alertTriangle', 13)}<span>Save failed</span></div>
         <div class="active-session-mini hidden" id="active-session-mini">
           ${icon('pulse', 13)}
           <span class="active-session-name"></span>
@@ -65,6 +66,13 @@ function buildShell() {
 
   renderNav();
   updateHeaderStats();
+}
+
+function updateSaveStatus(saveState) {
+  const status = document.getElementById('save-status');
+  if (!status) return;
+  status.classList.toggle('hidden', saveState.status !== 'error');
+  status.dataset.tip = saveState.error || 'Local data could not be saved';
 }
 
 function updateActiveSessionMini() {
@@ -132,6 +140,7 @@ async function init() {
   restoreActiveSession(store);
   buildShell();
   store.subscribe(updateHeaderStats);
+  store.subscribeSaveState(updateSaveStatus);
   onSessionEvent(() => {
     updateActiveSessionMini();
     syncActiveSessionTicker();
