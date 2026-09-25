@@ -67,7 +67,7 @@ npm test
 A successful run ends with output similar to:
 
 ```text
-111 passed, 0 failed
+114 passed, 0 failed
 4 storage recovery checks passed
 ```
 
