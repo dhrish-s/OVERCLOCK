@@ -547,13 +547,16 @@ export class Store {
   }
 
   importData(parsed) {
-    if (!parsed || typeof parsed !== 'object' || !parsed.profile || !parsed.categories) {
+    if (!parsed || typeof parsed !== 'object' || !parsed.profile || !Array.isArray(parsed.categories)) {
       return { ok: false, error: 'That file does not look like an Overclock backup.' };
     }
-    this.mutate((data) => {
-      Object.assign(data, migrate(parsed));
-    });
-    return { ok: true };
+    try {
+      const imported = migrate(JSON.parse(JSON.stringify(parsed)));
+      this.mutate((data) => Object.assign(data, imported));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: `Import failed: ${String(err && err.message ? err.message : err)}` };
+    }
   }
 
   resetAll() {
@@ -609,12 +612,24 @@ function backfillStructuredWorklog(data) {
 function migrate(data) {
   // Single version today; this is the seam for future schema migrations
   // so old local backups never silently corrupt on upgrade.
+  const defaults = createDefaultData();
+  if (!data.profile || typeof data.profile !== 'object' || !Array.isArray(data.categories)) {
+    throw new Error('Missing profile or category data.');
+  }
+  if (data.categories.some((category) => !category || typeof category !== 'object' || !category.id || !category.name)) {
+    throw new Error('One or more categories are invalid.');
+  }
+  data.profile = { ...defaults.profile, ...data.profile };
+  data.settings = { ...defaults.settings, ...(data.settings || {}) };
+  if (!data.days || typeof data.days !== 'object' || Array.isArray(data.days)) data.days = {};
   if (!data.version) data.version = 1;
-  if (!data.rewards) data.rewards = createDefaultData().rewards;
+  if (!data.rewards || typeof data.rewards !== 'object') data.rewards = defaults.rewards;
+  if (!Array.isArray(data.rewards.small)) data.rewards.small = defaults.rewards.small;
+  if (!Array.isArray(data.rewards.big)) data.rewards.big = defaults.rewards.big;
   if (!data.rewards.usedSmallIds) data.rewards.usedSmallIds = [];
   if (!data.rewards.usedBigIds) data.rewards.usedBigIds = [];
   if (!data.rewards.history) data.rewards.history = [];
-  if (!data.worklog) data.worklog = [];
+  if (!Array.isArray(data.worklog)) data.worklog = [];
   if (!data.streaks) data.streaks = { overall: { current: 0, longest: 0, lastDate: null } };
   if (!data.streaks.overall) data.streaks.overall = { current: 0, longest: 0, lastDate: null };
   if (typeof data.profile.streakShields !== 'number') data.profile.streakShields = 0;

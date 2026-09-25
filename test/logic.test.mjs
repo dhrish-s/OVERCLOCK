@@ -378,6 +378,15 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 {
   const store = new Store();
   store._scheduleSave = () => {};
+  const partial = store.importData({ profile: { displayName: 'Imported student' }, categories: [] });
+  assertEqual(partial.ok, true, 'partial older backups receive current safe defaults');
+  assertEqual(store.data.settings.remindersEnabled, true, 'backup migration restores missing settings');
+  assertEqual(store.importData({ profile: {}, categories: {} }).ok, false, 'malformed category data is rejected without throwing');
+}
+
+{
+  const store = new Store();
+  store._scheduleSave = () => {};
   const entry = store.beginSessionLog({
     categoryId: 'cat_leetcode',
     intent: 'Recovery test',
