@@ -404,6 +404,17 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 }
 
 {
+  const store = new Store();
+  store._scheduleSave = () => {};
+  const first = { categoryId: 'cat_leetcode', startedAt: '2026-06-17T13:00:00.000Z', endedAt: '2026-06-17T14:00:00.000Z' };
+  store.addManualWorklogEntry(first);
+  const blocked = store.addManualWorklogEntry({ ...first, startedAt: '2026-06-17T13:30:00.000Z', endedAt: '2026-06-17T14:30:00.000Z' });
+  assertEqual(blocked.conflict, true, 'manual entries report accidental time overlaps');
+  const allowed = store.addManualWorklogEntry({ ...first, allowOverlap: true });
+  assertEqual(allowed.ok, true, 'manual entries allow an explicitly confirmed overlap');
+}
+
+{
   let now = 1_000;
   const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
   now += 5_000;

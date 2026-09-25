@@ -12,6 +12,7 @@ import {
   targetForCategory,
   applyXp,
   randomInRange,
+  overlappingWorklogEntries,
 } from './logic.js';
 
 const DEFAULT_CATEGORIES = [
@@ -406,11 +407,14 @@ export class Store {
 
   /** Manual entries are for honest backfills and one-off tasks. They appear
    * in the timeline/calendar, but intentionally do not award coins/streaks. */
-  addManualWorklogEntry({ categoryId, startedAt, endedAt, intent, note, count, completed = true }) {
+  addManualWorklogEntry({ categoryId, startedAt, endedAt, intent, note, count, completed = true, allowOverlap = false }) {
     const start = new Date(startedAt);
     const end = new Date(endedAt);
     if (!categoryId || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
       return { ok: false, error: 'Choose a category and a valid start/end time.' };
+    }
+    if (!allowOverlap && overlappingWorklogEntries(this.data.worklog, start, end).length) {
+      return { ok: false, conflict: true, error: 'This time overlaps another worklog entry.' };
     }
 
     const now = new Date().toISOString();
@@ -437,7 +441,7 @@ export class Store {
   }
 
   /** Edit a completed worklog row without changing rewards or streak data. */
-  updateWorklogEntry(logId, { categoryId, startedAt, endedAt, intent, note, count, completed = true }) {
+  updateWorklogEntry(logId, { categoryId, startedAt, endedAt, intent, note, count, completed = true, allowOverlap = false }) {
     const entry = this.data.worklog.find((item) => item.id === logId);
     if (!entry) return { ok: false, error: 'This worklog entry no longer exists.' };
     if (entry.status === 'active') return { ok: false, error: 'End the active session before editing it.' };
@@ -446,6 +450,9 @@ export class Store {
     const end = new Date(endedAt);
     if (!categoryId || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
       return { ok: false, error: 'Choose a category and a valid start/end time.' };
+    }
+    if (!allowOverlap && overlappingWorklogEntries(this.data.worklog, start, end, logId).length) {
+      return { ok: false, conflict: true, error: 'This time overlaps another worklog entry.' };
     }
 
     const updatedAt = new Date().toISOString();
