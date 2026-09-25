@@ -101,7 +101,7 @@ function detailsHtml(entries, store) {
             <div class="log-tag" style="color:${color}">${icon(cat ? cat.icon : 'book', 12)}<span>${escapeHtml(cat ? cat.name : 'Unknown')}</span></div>
             <div class="row log-entry-actions">
               <span class="badge ${entry.status === 'active' ? 'active' : entry.status === 'discarded' ? 'idle' : entry.type === 'manual' ? 'manual' : entry.completed ? 'done' : 'idle'}">${statusLabel(entry)}</span>
-              ${entry.status !== 'active' ? `<button class="btn btn-ghost btn-icon edit-log-entry" data-log-id="${entry.id}" data-tip="Edit entry">${icon('edit', 13)}</button><button class="btn btn-ghost btn-icon delete-log-entry" data-log-id="${entry.id}" data-tip="Delete entry">${icon('trash', 13)}</button>` : ''}
+              ${entry.status !== 'active' && entry.type !== 'session' ? `<button class="btn btn-ghost btn-icon edit-log-entry" data-log-id="${entry.id}" data-tip="Edit entry">${icon('edit', 13)}</button><button class="btn btn-ghost btn-icon delete-log-entry" data-log-id="${entry.id}" data-tip="Delete entry">${icon('trash', 13)}</button>` : ''}
             </div>
           </div>
           ${entry.intent ? `<div class="log-intent">${escapeHtml(entry.intent)}</div>` : ''}

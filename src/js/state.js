@@ -441,6 +441,7 @@ export class Store {
     const entry = this.data.worklog.find((item) => item.id === logId);
     if (!entry) return { ok: false, error: 'This worklog entry no longer exists.' };
     if (entry.status === 'active') return { ok: false, error: 'End the active session before editing it.' };
+    if (entry.type === 'session') return { ok: false, error: 'Automatic sessions are locked because they are linked to rewards and streaks.' };
     const start = new Date(startedAt);
     const end = new Date(endedAt);
     if (!categoryId || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
@@ -471,6 +472,7 @@ export class Store {
     const entry = this.data.worklog.find((item) => item.id === logId);
     if (!entry) return { ok: false, error: 'This worklog entry no longer exists.' };
     if (entry.status === 'active') return { ok: false, error: 'End the active session before deleting it.' };
+    if (entry.type === 'session') return { ok: false, error: 'Automatic sessions are locked because they are linked to rewards and streaks.' };
     this.mutate((data) => {
       data.worklog = data.worklog.filter((item) => item.id !== logId);
     });

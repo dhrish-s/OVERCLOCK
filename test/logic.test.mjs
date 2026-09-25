@@ -393,6 +393,14 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 }
 
 {
+  const store = new Store();
+  store._scheduleSave = () => {};
+  store.data.worklog.push({ id: 'earned-session', type: 'session', status: 'completed' });
+  assertEqual(store.deleteWorklogEntry('earned-session').ok, false, 'reward-bearing session logs cannot be deleted independently');
+  assertEqual(store.updateWorklogEntry('earned-session', {}).ok, false, 'reward-bearing session logs cannot be edited independently');
+}
+
+{
   let now = 1_000;
   const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
   now += 5_000;
