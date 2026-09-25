@@ -138,7 +138,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     ? new FocusClock({ mode, workSec, breakSec, state: restoredTimer.state })
     : null;
   let sessionIntent = resumeLog?.intent || '';
-  let count = 0;
+  let count = resumeLog?.count || 0;
   let intervalId = null;
   let unsubscribeDeadline = null;
   let ended = false;
@@ -227,7 +227,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
           <span class="mute" style="font-size:12.5px"></span>
           <div class="stepper">
             <button id="ft-dec">−</button>
-            <span class="val mono" id="ft-count">0</span>
+            <span class="val mono" id="ft-count">${count}</span>
             <button id="ft-inc">+</button>
           </div>
         </div>
@@ -249,10 +249,12 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     modal.querySelector('#ft-inc').addEventListener('click', () => {
       count += 1;
       modal.querySelector('#ft-count').textContent = String(count);
+      checkpointClock();
     });
     modal.querySelector('#ft-dec').addEventListener('click', () => {
       count = Math.max(0, count - 1);
       modal.querySelector('#ft-count').textContent = String(count);
+      checkpointClock();
     });
 
     updateDisplay();
@@ -318,7 +320,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     if (!clock || !sessionLog) return;
     const state = clock.exportState();
     if (activeSessionInfo?.logId === sessionLog.id) activeSessionInfo.timer.state = state;
-    store.checkpointSessionLog(sessionLog.id, state);
+    store.checkpointSessionLog(sessionLog.id, state, count);
   }
 
   function tick() {

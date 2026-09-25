@@ -400,8 +400,9 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
     intent: 'Recovery test',
     timer: { mode: 'stopwatch', workSec: 0, breakSec: 0, state: { elapsedMs: 0 } },
   });
-  store.checkpointSessionLog(entry.id, { elapsedMs: 5000, running: false });
+  store.checkpointSessionLog(entry.id, { elapsedMs: 5000, running: false }, 3);
   assertEqual(store.data.worklog[0].timer.state.elapsedMs, 5000, 'active session checkpoints are persisted in the worklog');
+  assertEqual(store.data.worklog[0].count, 3, 'active session checkpoints preserve the session count');
 }
 
 {

@@ -396,12 +396,13 @@ export class Store {
     return logEntry;
   }
 
-  checkpointSessionLog(logId, clockState) {
+  checkpointSessionLog(logId, clockState, count = null) {
     if (!logId || !clockState) return;
     this.mutate((data) => {
       const entry = data.worklog.find((item) => item.id === logId);
       if (!entry || entry.status !== 'active' || !entry.timer) return;
       entry.timer.state = clockState;
+      if (count !== null) entry.count = Math.max(0, Number(count) || 0);
       entry.updatedAt = new Date().toISOString();
     });
   }
