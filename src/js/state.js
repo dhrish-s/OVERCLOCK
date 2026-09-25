@@ -354,7 +354,7 @@ export class Store {
 
   /** Create a log row when focus actually starts. The timer later completes
    * this same row, which makes active sessions visible immediately. */
-  beginSessionLog({ categoryId, intent }) {
+  beginSessionLog({ categoryId, intent, timer }) {
     const startedAt = new Date().toISOString();
     const logEntry = {
       id: uid('log'),
@@ -369,6 +369,7 @@ export class Store {
       note: '',
       intent: intent || '',
       completed: false,
+      timer: timer || null,
       createdAt: startedAt,
       updatedAt: startedAt,
     };
@@ -376,6 +377,16 @@ export class Store {
       data.worklog.unshift(logEntry);
     });
     return logEntry;
+  }
+
+  checkpointSessionLog(logId, clockState) {
+    if (!logId || !clockState) return;
+    this.mutate((data) => {
+      const entry = data.worklog.find((item) => item.id === logId);
+      if (!entry || entry.status !== 'active' || !entry.timer) return;
+      entry.timer.state = clockState;
+      entry.updatedAt = new Date().toISOString();
+    });
   }
 
   /** Discarded starts stay visible as cancelled work, but never award time,

@@ -359,6 +359,18 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
 }
 
 {
+  const store = new Store();
+  store._scheduleSave = () => {};
+  const entry = store.beginSessionLog({
+    categoryId: 'cat_leetcode',
+    intent: 'Recovery test',
+    timer: { mode: 'stopwatch', workSec: 0, breakSec: 0, state: { elapsedMs: 0 } },
+  });
+  store.checkpointSessionLog(entry.id, { elapsedMs: 5000, running: false });
+  assertEqual(store.data.worklog[0].timer.state.elapsedMs, 5000, 'active session checkpoints are persisted in the worklog');
+}
+
+{
   let now = 1_000;
   const clock = new FocusClock({ mode: 'stopwatch', now: () => now });
   now += 5_000;
