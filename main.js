@@ -27,6 +27,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { loadDataWithRecovery } = require('./storage');
+const { decodePngDataUrl } = require('./export-utils');
 
 const IS_WINDOWS = process.platform === 'win32';
 if (IS_WINDOWS) {
@@ -53,6 +54,7 @@ const dataFilePath = path.join(userDataDir, 'overclock-data.json');
 const backupsDir = path.join(userDataDir, 'backups');
 const MAX_BACKUPS = 6;
 const MAX_TRANSFER_BYTES = 50 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
 function ensureDirs() {
   if (!fs.existsSync(backupsDir)) {
@@ -433,6 +435,7 @@ ipcMain.handle('dialog:exportFile', async (event, { defaultName, content }) => {
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     defaultPath: defaultName,
     filters: [
+      { name: 'Text', extensions: ['txt'] },
       { name: 'JSON', extensions: ['json'] },
       { name: 'CSV', extensions: ['csv'] },
     ],
@@ -440,6 +443,30 @@ ipcMain.handle('dialog:exportFile', async (event, { defaultName, content }) => {
   if (canceled || !filePath) return { ok: false };
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
+    return { ok: true, filePath };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+});
+
+ipcMain.handle('dialog:exportPng', async (event, { defaultName, dataUrl }) => {
+  requireTrustedIpc(event);
+  if (typeof defaultName !== 'string' || defaultName.length > 120 || path.basename(defaultName) !== defaultName || !defaultName.toLowerCase().endsWith('.png')) {
+    return { ok: false, error: 'Invalid PNG filename.' };
+  }
+  let image;
+  try {
+    image = decodePngDataUrl(dataUrl, MAX_IMAGE_BYTES);
+  } catch (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  }
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultName,
+    filters: [{ name: 'PNG image', extensions: ['png'] }],
+  });
+  if (canceled || !filePath) return { ok: false };
+  try {
+    fs.writeFileSync(filePath, image);
     return { ok: true, filePath };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };

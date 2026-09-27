@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('api', {
 
   exportFile: (defaultName, content) =>
     ipcRenderer.invoke('dialog:exportFile', { defaultName, content }),
+  exportPng: (defaultName, dataUrl) =>
+    ipcRenderer.invoke('dialog:exportPng', { defaultName, dataUrl }),
   importFile: () => ipcRenderer.invoke('dialog:importFile'),
 
   minimizeWindow: () => ipcRenderer.send('window:minimize'),

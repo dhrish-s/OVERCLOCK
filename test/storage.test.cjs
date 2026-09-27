@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { loadDataWithRecovery } = require('../storage');
+const { decodePngDataUrl } = require('../export-utils');
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'overclock-storage-'));
 const dataFile = path.join(root, 'overclock-data.json');
@@ -21,6 +22,13 @@ try {
   assert.ok(fs.readdirSync(root).some((name) => name.includes('.corrupt-')));
   assert.ok(errors.length >= 1);
   console.log('4 storage recovery checks passed');
+
+  const onePixelPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB';
+  assert.deepStrictEqual([...decodePngDataUrl(onePixelPng, 1024).subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.throws(() => decodePngDataUrl('data:text/plain;base64,aGVsbG8=', 1024), /must be a PNG/);
+  assert.throws(() => decodePngDataUrl('data:image/png;base64,aGVsbG8=', 1024), /invalid PNG/);
+  assert.throws(() => decodePngDataUrl(onePixelPng, 4), /safety limit/);
+  console.log('4 image export checks passed');
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }
