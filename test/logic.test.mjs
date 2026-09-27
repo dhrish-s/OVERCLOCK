@@ -34,6 +34,7 @@ import { FocusClock } from '../src/js/focusClock.js';
 import { createDefaultData, Store } from '../src/js/state.js';
 import { getActiveCategoryId, getActiveSessionInfo, restoreActiveSession } from '../src/js/timer.js';
 import { escapeHtml } from '../src/js/dom.js';
+import { buildDayShareSummary, dayShareText } from '../src/js/shareDay.js';
 
 let pass = 0;
 let fail = 0;
@@ -204,6 +205,48 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   const active = normalizedWorklogEntry({ id: 'log1', categoryId: 'leet', startedAt: start, status: 'active' }, new Date(2026, 5, 17, 9, 45));
   assertEqual(active.durationSec, 1800, 'active worklog entries use now as their temporary end time');
   assertEqual(active.date, '2026-06-17', 'normalized worklog entries derive a local date when needed');
+}
+
+// ---- daily sharing ----
+{
+  const categories = [
+    { id: 'leet', name: 'LeetCode', color: '#FFB454' },
+    { id: 'study', name: 'Study', color: 'invalid' },
+  ];
+  const entries = [
+    {
+      id: 'later',
+      categoryId: 'study',
+      status: 'completed',
+      startedAt: new Date(2026, 5, 17, 10, 0).toISOString(),
+      endedAt: new Date(2026, 5, 17, 11, 0).toISOString(),
+      intent: 'Read notes',
+      note: 'Private detail',
+    },
+    {
+      id: 'early',
+      categoryId: 'leet',
+      status: 'completed',
+      startedAt: new Date(2026, 5, 17, 8, 30).toISOString(),
+      endedAt: new Date(2026, 5, 17, 9, 15).toISOString(),
+      intent: 'Graph practice',
+    },
+    {
+      id: 'discarded',
+      categoryId: 'leet',
+      status: 'discarded',
+      startedAt: new Date(2026, 5, 17, 12, 0).toISOString(),
+      endedAt: new Date(2026, 5, 17, 12, 30).toISOString(),
+    },
+  ];
+  const summary = buildDayShareSummary(entries, categories, '2026-06-17');
+  assertEqual(summary.items.map((item) => item.id), ['early', 'later'], 'daily share orders work and excludes discarded entries');
+  assertEqual(summary.totalMinutes, 105, 'daily share totals tracked minutes');
+  assertEqual(summary.categories, [{ name: 'Study', minutes: 60 }, { name: 'LeetCode', minutes: 45 }], 'daily share totals categories');
+  assertEqual(summary.items[1].categoryColor, '#9AA29F', 'daily share replaces invalid category colors');
+  assertTrue(dayShareText(summary).includes('Private detail'), 'daily share text includes notes when requested');
+  const privateSummary = buildDayShareSummary(entries, categories, '2026-06-17', { includeNotes: false });
+  assertTrue(!dayShareText(privateSummary).includes('Private detail'), 'daily share can omit notes');
 }
 
 {
