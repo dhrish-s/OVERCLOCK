@@ -59,6 +59,9 @@ const PATHS = {
   chevronRight: '<polyline points="9.5 5 16 12 9.5 19"/>',
   chevronDown: '<polyline points="5 9.5 12 16 19 9.5"/>',
   download: '<path d="M12 3.5v11"/><polyline points="7.2 10.2 12 15 16.8 10.2"/><line x1="4.5" y1="19.5" x2="19.5" y2="19.5"/>',
+  share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><polyline points="4 17 9.5 12 13 15 16 12 21 17"/>',
+  fileText: '<path d="M6 3h8l4 4v14H6z"/><polyline points="14 3 14 7 18 7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/>',
   upload: '<path d="M12 19.5v-11"/><polyline points="7.2 13.3 12 8.5 16.8 13.3"/><line x1="4.5" y1="4.5" x2="19.5" y2="4.5"/>',
   search: '<circle cx="10.8" cy="10.8" r="6.3"/><line x1="15.5" y1="15.5" x2="20" y2="20"/>',
   archive:

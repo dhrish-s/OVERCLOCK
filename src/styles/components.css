@@ -447,6 +447,9 @@
 .modal.wide {
   width: 560px;
 }
+.modal.share-modal {
+  width: 720px;
+}
 .modal-title {
   font-size: 16px;
   font-weight: 600;
@@ -462,6 +465,41 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
+}
+
+.share-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  max-height: 46vh;
+  padding: 10px;
+  overflow: hidden;
+  background: var(--void);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+}
+
+.share-preview-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 43vh;
+  object-fit: contain;
+}
+
+.share-option {
+  gap: 20px;
+  min-height: 58px;
+  margin-top: 12px;
+  padding: 8px 2px;
+  font-size: 12px;
+}
+
+.share-option-title {
+  margin-bottom: 3px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------------
@@ -949,6 +987,9 @@
 
 @media (max-width: 720px) {
   .modal.wide {
+    width: 94vw;
+  }
+  .modal.share-modal {
     width: 94vw;
   }
   .timeline-hour {

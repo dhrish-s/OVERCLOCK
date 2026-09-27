@@ -4,6 +4,7 @@
 
 import { icon } from './../icons.js';
 import { escapeHtml, fmtDateLong, debounce } from './../dom.js';
+import { buildDayShareSummary, createDaySharePng, dayShareText } from './../shareDay.js';
 import {
   todayKey,
   addDays,
@@ -151,6 +152,67 @@ export function render(root, store) {
   let fromHour = 0;
   let toHour = 24;
 
+  function openShareModal() {
+    let includeNotes = true;
+    const dayEntries = worklogEntriesForDate(store.data.worklog, selectedDate);
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay fade-in';
+    const modal = document.createElement('div');
+    modal.className = 'modal share-modal';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.remove();
+    }
+
+    function summary() {
+      return buildDayShareSummary(dayEntries, store.data.categories, selectedDate, { includeNotes });
+    }
+
+    function refreshPreview() {
+      modal.querySelector('#share-preview').src = createDaySharePng(summary());
+    }
+
+    modal.innerHTML = `
+      <div class="row between" style="margin-bottom:4px">
+        <div>
+          <div class="modal-title">Share this day</div>
+          <div class="modal-sub">Create a private image or text file. Nothing is uploaded.</div>
+        </div>
+        <button class="btn btn-ghost btn-icon" id="share-close" aria-label="Close">${icon('x', 16)}</button>
+      </div>
+      <div class="share-preview-frame"><img id="share-preview" alt="Daily work summary preview"></div>
+      <div class="share-option row between">
+        <div><div class="share-option-title">Include notes</div><div class="mute">Turn this off before sharing sensitive details.</div></div>
+        <label class="switch"><input id="share-notes" type="checkbox" aria-label="Include notes" checked/><span class="track"></span></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="share-text">${icon('fileText', 14)} Save text</button>
+        <button class="btn btn-primary" id="share-image">${icon('image', 14)} Save PNG</button>
+      </div>
+    `;
+    refreshPreview();
+    modal.querySelector('#share-close').addEventListener('click', close);
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) close();
+    });
+    modal.querySelector('#share-notes').addEventListener('change', (event) => {
+      includeNotes = event.target.checked;
+      refreshPreview();
+    });
+    modal.querySelector('#share-text').addEventListener('click', async (event) => {
+      const result = await window.api.exportFile(`overclock-${selectedDate}.txt`, dayShareText(summary()));
+      if (result?.error) window.alert(result.error);
+      if (result?.ok) event.currentTarget.innerHTML = `${icon('check', 14)} Saved`;
+    });
+    modal.querySelector('#share-image').addEventListener('click', async (event) => {
+      const result = await window.api.exportPng(`overclock-${selectedDate}.png`, createDaySharePng(summary()));
+      if (result?.error) window.alert(result.error);
+      if (result?.ok) event.currentTarget.innerHTML = `${icon('check', 14)} Saved`;
+    });
+  }
+
   function openManualEntryModal(entry = null) {
     const editing = !!entry;
     const cats = editing ? store.data.categories : store.activeCategories();
@@ -288,6 +350,7 @@ export function render(root, store) {
             <input class="input mono" id="log-date" type="date" value="${selectedDate}" style="width:150px"/>
             <button class="btn btn-icon" id="log-next-day" data-tip="Next day">${icon('chevronRight', 14)}</button>
             <button class="btn btn-primary" id="add-manual-log">${icon('plus', 14)} Add entry</button>
+            <button class="btn" id="share-day" ${entries.some((entry) => entry.status !== 'discarded') ? '' : 'disabled'}>${icon('share', 14)} Share day</button>
             <button class="btn" id="export-log">${icon('download', 14)} Export CSV</button>
           </div>
         </div>
@@ -343,6 +406,7 @@ export function render(root, store) {
       paint();
     });
     root.querySelector('#add-manual-log').addEventListener('click', () => openManualEntryModal());
+    root.querySelector('#share-day').addEventListener('click', openShareModal);
     root.querySelectorAll('.edit-log-entry').forEach((button) => {
       button.addEventListener('click', () => {
         const entry = store.data.worklog.find((item) => item.id === button.dataset.logId);
