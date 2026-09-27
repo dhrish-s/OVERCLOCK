@@ -8,7 +8,7 @@
   [![Release](https://img.shields.io/github/v/release/dhrish-s/OVERCLOCK?style=flat-square&color=4ade80)](https://github.com/dhrish-s/OVERCLOCK/releases/latest)
   [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
   [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
-  [![Tests: 121](https://img.shields.io/badge/tests-121%20passing-4ade80?style=flat-square)](#development)
+  [![Tests: 131](https://img.shields.io/badge/tests-131%20passing-4ade80?style=flat-square)](#development)
 </div>
 
 Overclock is built for students, engineers, and anyone juggling focused work across a full day. Start a timer when you sit down, add forgotten work later, and use the worklog to see where your time actually went.
@@ -34,6 +34,18 @@ Most timers remember duration but lose context. Overclock keeps the task, catego
 The gallery below uses synthetic sample activity created only for these screenshots. Click any image to see it at full size.
 
 <table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/images/overclock-share-day.png"><img src="docs/images/overclock-share-day.png" alt="Share Day preview with local PNG and text export controls"></a>
+      <br><strong>Private day sharing</strong><br>
+      <sub>Preview a polished daily summary, hide sensitive notes, then save it as an image or text file.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/images/overclock-daily-summary.png"><img src="docs/images/overclock-daily-summary.png" alt="Exported Overclock daily work summary image"></a>
+      <br><strong>Portable daily summary</strong><br>
+      <sub>Send a readable timeline and activity list without uploading your worklog.</sub>
+    </td>
+  </tr>
   <tr>
     <td width="50%" valign="top">
       <a href="docs/images/overclock-worklog.png"><img src="docs/images/overclock-worklog.png" alt="Hourly worklog with completed tasks and idle gaps"></a>
@@ -68,6 +80,7 @@ The gallery below uses synthetic sample activity created only for these screensh
 - **Quick templates:** Add common activities such as Gym, Class, Reading, Interview prep, and Errands.
 - **Editable history:** Correct or remove finished manual entries when plans change.
 - **Idle gap detection:** See untracked periods between work blocks instead of guessing where the day went.
+- **Private day sharing:** Export a polished PNG or plain-text daily summary with an option to hide notes.
 - **Flexible focus tools:** Use stopwatch, countdown, or Pomodoro modes for each category.
 - **Daily modes:** Switch between baseline goals, focused targets, and recovery days.
 - **Weekly insights:** Review time, sessions, completed work, and category patterns.
@@ -77,22 +90,22 @@ The gallery below uses synthetic sample activity created only for these screensh
 
 ## Install Overclock
 
-### Download Version 1.0.2
+### Download Version 1.0.3
 
 1. Open the [latest GitHub release](https://github.com/dhrish-s/OVERCLOCK/releases/latest).
-2. Download `Overclock.Setup.1.0.2.exe`.
+2. Download `Overclock.Setup.1.0.3.exe`.
 3. Run the installer and choose an installation folder.
 4. Launch Overclock from the Start menu or desktop shortcut.
 
-The Version 1.0.2 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+The Version 1.0.3 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
 
-### What Is New in Version 1.0.2
+### What Is New in Version 1.0.3
 
-- Worklog timeline bars are brighter and easier to distinguish from the track.
-- Overlapping manual or historical entries use separate lanes instead of covering each other.
-- Short entries keep a visible minimum width.
-- Invalid imported category colors fall back to a readable neutral color.
-- Timeline geometry now has dedicated overlap regression tests.
+- Share any selected worklog day as a polished PNG image.
+- Save the same daily summary as a lightweight text file for chat or email.
+- Preview the image before saving and hide notes with one privacy toggle.
+- Keep all sharing local, with no account, public link, server, or upload.
+- Validate PNG type, signature, size, and filename before the app writes a file.
 
 ### Install Locally From Source
 
@@ -127,7 +140,7 @@ npm run dist
 When the build finishes, install the app by opening:
 
 ```text
-dist\Overclock Setup 1.0.2.exe
+dist\Overclock Setup 1.0.3.exe
 ```
 
 Complete the setup wizard, then launch Overclock from the Start menu or desktop shortcut. Your activity data will be stored separately in `%APPDATA%\Overclock`, so rebuilding the source does not erase your existing records.
@@ -147,7 +160,8 @@ This opens Overclock directly from the repository. You can also run `npm run dis
 3. Finish the session and record the result.
 4. Add offline or forgotten work through the manual entry form.
 5. Read the hourly worklog to find productive blocks and empty gaps.
-6. Check the weekly view for patterns worth keeping or changing.
+6. Use **Share day** when you want a private image or text summary.
+7. Check the weekly view for patterns worth keeping or changing.
 
 Closing the window keeps Overclock in the system tray. Choose **Quit** from the tray menu when you want to stop it completely.
 
@@ -172,11 +186,12 @@ Then use the command that matches the job:
 A healthy test run currently finishes with:
 
 ```text
-117 passed, 0 failed
+123 passed, 0 failed
 4 storage recovery checks passed
+4 image export checks passed
 ```
 
-The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.2.exe`.
+The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.3.exe`.
 
 If PowerShell blocks `npm.ps1`, use the Windows command shim instead:
 
@@ -203,8 +218,10 @@ Reinstalling the app normally leaves this folder untouched. Exporting a backup b
 main.js            Electron window, tray, reminders, and secure IPC
 preload.js         Narrow bridge between Electron and the interface
 storage.js         Local data recovery and backup loading
+export-utils.js    PNG validation for safe image exports
 src/js/state.js    Application state and persistence flow
 src/js/logic.js    Testable dates, goals, rewards, and worklog rules
+src/js/shareDay.js Daily share summaries, text output, and PNG rendering
 src/js/views/      Dashboard, worklog, calendar, rewards, and settings
 src/styles/        Layout, components, and animation styles
 test/              Logic and storage recovery tests
