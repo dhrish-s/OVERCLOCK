@@ -457,12 +457,25 @@ export function render(root, store) {
   }
 
   paint();
-  const unsub = store.subscribe(paint);
-  const liveRefresh = setInterval(() => {
-    if (!document.hidden && store.data.worklog.some((entry) => entry.status === 'active')) paint();
-  }, 60000);
+  let liveRefresh = null;
+  function syncLiveRefresh() {
+    const hasActiveSession = store.data.worklog.some((entry) => entry.status === 'active');
+    if (hasActiveSession && !liveRefresh) {
+      liveRefresh = setInterval(() => {
+        if (!document.hidden) paint();
+      }, 60000);
+    } else if (!hasActiveSession && liveRefresh) {
+      clearInterval(liveRefresh);
+      liveRefresh = null;
+    }
+  }
+  const unsub = store.subscribe(() => {
+    paint();
+    syncLiveRefresh();
+  });
+  syncLiveRefresh();
   return () => {
-    clearInterval(liveRefresh);
+    if (liveRefresh) clearInterval(liveRefresh);
     unsub();
   };
 }
