@@ -1,10 +1,6 @@
-// timer.js - the one piece of UI that's a true modal overlay rather than a
-// view: starting a session expands into a focus card with a live clock,
-// then a short "what did you get done" step on End, which is what actually
-// calls store.logSession() and feeds the streak/coin/perfect-day machinery
-// in state.js. A tiny pub-sub (onSessionEvent) lets the dashboard reflect
-// "this category is ACTIVE right now" without timer.js knowing about the
-// dashboard.
+// timer.js - starts sessions in a focused overlay, then lets that overlay
+// minimize while the wall-clock timer continues in the background. End is
+// the only action that stops work and opens the wrap-up step.
 
 import { icon } from './icons.js';
 import { escapeHtml } from './dom.js';
@@ -143,6 +139,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   let intervalId = null;
   let unsubscribeDeadline = null;
   let ended = false;
+  let wrappingUp = false;
   let noteStepSeconds = 0;
   let sessionLog = resumeLog;
 
@@ -163,7 +160,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
         <button class="btn btn-primary" id="ft-start-intent">Start focus</button>
       </div>
     `;
-    modal.querySelector('#ft-cancel-intent').addEventListener('click', () => closeAndDiscard());
+    modal.querySelector('#ft-cancel-intent').addEventListener('click', minimizeTimer);
     modal.querySelector('#ft-start-intent').addEventListener('click', () => {
       sessionIntent = modal.querySelector('#ft-intent').value.trim();
       clock = new FocusClock({
@@ -200,7 +197,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     modal.innerHTML = `
       <div class="row between" style="margin-bottom:4px">
         <div class="modal-title"></div>
-        <button class="btn btn-ghost btn-icon" id="ft-close" aria-label="Close">${icon('x', 16)}</button>
+        <button class="btn btn-ghost btn-icon" id="ft-close" aria-label="Minimize timer" data-tip="Keep running in background">${icon('x', 16)}</button>
       </div>
       <div class="modal-sub"></div>
       <div class="focus-timer">
@@ -243,7 +240,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
         : 'Stopwatch - counts up freely.';
     modal.querySelector('.focus-count-row .mute').textContent = category.countLabel;
 
-    modal.querySelector('#ft-close').addEventListener('click', () => closeAndDiscard());
+    modal.querySelector('#ft-close').addEventListener('click', minimizeTimer);
     modal.querySelector('#ft-toggle').addEventListener('click', toggleRunning);
     modal.querySelector('#ft-reset').addEventListener('click', resetClock);
     modal.querySelector('#ft-end').addEventListener('click', goToEndStep);
@@ -347,7 +344,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   }
 
   function startInterval() {
-    if (intervalId) return;
+    if (intervalId || document.hidden || !overlay.isConnected) return;
     intervalId = setInterval(tick, 1000);
   }
 
@@ -382,7 +379,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     unsubscribeDeadline = null;
   }
 
-  function closeAndDiscard() {
+  function minimizeTimer() {
     if (ended) return;
     if (!clock) {
       activeModalOpen = false;
@@ -390,22 +387,23 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
       return;
     }
     tick();
-    if (clock.snapshot().accumulatedWorkSec > 5 || count > 0 || sessionIntent) {
-      const sure = window.confirm('Discard this session? Nothing will be logged.');
-      if (!sure) return;
-    }
+    checkpointClock();
     stopInterval();
-    window.api.cancelTimerDeadline();
     removeClockListeners();
-    store.discardSessionLog(sessionLog?.id);
-    emit({ type: 'discard', categoryId: category.id });
     activeModalOpen = false;
     overlay.remove();
+    showToast({
+      kind: 'info',
+      title: 'Timer running in background',
+      body: 'Use the timer in the title bar to reopen it.',
+      timeout: 4000,
+    });
   }
 
   function goToEndStep() {
     tick();
     clock.setRunning(false);
+    wrappingUp = true;
     noteStepSeconds = clock.snapshot().accumulatedWorkSec;
     stopInterval();
     window.api.cancelTimerDeadline();
@@ -436,6 +434,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     modal.querySelector('#ft-intent-summary').textContent = sessionIntent || 'No intent written.';
 
     modal.querySelector('#ft-back').addEventListener('click', () => {
+      wrappingUp = false;
       renderShell();
       clock.setRunning(true);
       checkpointClock();
@@ -499,6 +498,6 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   }
 
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeAndDiscard();
+    if (e.target === overlay && !wrappingUp) minimizeTimer();
   });
 }
