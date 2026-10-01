@@ -8,7 +8,7 @@
   [![Release](https://img.shields.io/github/v/release/dhrish-s/OVERCLOCK?style=flat-square&color=4ade80)](https://github.com/dhrish-s/OVERCLOCK/releases/latest)
   [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
   [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
-  [![Tests: 131](https://img.shields.io/badge/tests-131%20passing-4ade80?style=flat-square)](#development)
+  [![Tests: 135](https://img.shields.io/badge/tests-135%20passing-4ade80?style=flat-square)](#development)
 </div>
 
 Overclock is built for students, engineers, and anyone juggling focused work across a full day. Start a timer when you sit down, add forgotten work later, and use the worklog to see where your time actually went.
@@ -86,7 +86,7 @@ The gallery below uses synthetic sample activity created only for these screensh
 - **Weekly insights:** Review time, sessions, completed work, and category patterns.
 - **Motivation that stays optional:** Earn streaks, coins, stars, and personal rewards.
 - **Restart recovery:** Restore interrupted sessions and protect local data with rotating backups.
-- **Quiet background use:** Keep reminders running from the Windows tray without leaving the main window open.
+- **Quiet background use:** Close the interface while timers and reminders continue from the lightweight tray process.
 
 ## Install Overclock
 
@@ -163,7 +163,7 @@ This opens Overclock directly from the repository. You can also run `npm run dis
 6. Use **Share day** when you want a private image or text summary.
 7. Check the weekly view for patterns worth keeping or changing.
 
-Closing the window keeps Overclock in the system tray. Choose **Quit** from the tray menu when you want to stop it completely.
+Closing the window suspends the interface to reduce background work. An active timer keeps its wall-clock time, reminders stay scheduled in the tray, and reopening Overclock restores the current session. Choose **Quit** from the tray menu when you want to stop the app completely.
 
 ## Development
 
