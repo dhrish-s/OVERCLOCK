@@ -9,7 +9,7 @@ import { icon } from './icons.js';
 import { escapeHtml } from './dom.js';
 import { initReminderBridge } from './notifications.js';
 import { formatDuration } from './logic.js';
-import { getActiveSessionInfo, onSessionEvent, restoreActiveSession, resumeActiveSession } from './timer.js';
+import { getActiveSessionInfo, onSessionEvent, prepareActiveSessionForBackground, restoreActiveSession, resumeActiveSession } from './timer.js';
 
 import { render as renderDashboard } from './views/dashboard.js';
 import { render as renderCalendar } from './views/calendar.js';
@@ -142,7 +142,14 @@ async function init() {
   buildShell();
   store.subscribe(updateHeaderStats);
   store.subscribeSaveState(updateSaveStatus);
-  window.api.onBeforeQuit(() => store.flush());
+  window.api.onBeforeWindowClose(async () => {
+    prepareActiveSessionForBackground();
+    await store.flush();
+  });
+  window.api.onBeforeQuit(async () => {
+    prepareActiveSessionForBackground();
+    await store.flush();
+  });
   onSessionEvent(() => {
     updateActiveSessionMini();
     syncActiveSessionTicker();

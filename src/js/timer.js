@@ -29,6 +29,7 @@ function emit(evt) {
 let activeSessionCategoryId = null;
 let activeSessionInfo = null;
 let activeModalOpen = false;
+let activeModalBackgroundHandler = null;
 export function getActiveCategoryId() {
   return activeSessionCategoryId;
 }
@@ -40,6 +41,10 @@ export function getActiveSessionInfo() {
   const preview = new FocusClock({ mode: timer.mode, workSec: timer.workSec, breakSec: timer.breakSec, state: timer.state });
   preview.advance();
   return { ...activeSessionInfo, elapsedSec: preview.snapshot().accumulatedWorkSec };
+}
+
+export function prepareActiveSessionForBackground() {
+  if (activeModalBackgroundHandler) activeModalBackgroundHandler();
 }
 
 export function restoreActiveSession(store) {
@@ -142,6 +147,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
   let wrappingUp = false;
   let noteStepSeconds = 0;
   let sessionLog = resumeLog;
+  activeModalBackgroundHandler = () => minimizeTimer({ notify: false });
 
   function totalForPhase() {
     return clock.snapshot().phase === 'work' ? workSec : breakSec;
@@ -379,9 +385,10 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     unsubscribeDeadline = null;
   }
 
-  function minimizeTimer() {
+  function minimizeTimer({ notify = true } = {}) {
     if (ended) return;
     if (!clock) {
+      activeModalBackgroundHandler = null;
       activeModalOpen = false;
       overlay.remove();
       return;
@@ -390,14 +397,17 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
     checkpointClock();
     stopInterval();
     removeClockListeners();
+    activeModalBackgroundHandler = null;
     activeModalOpen = false;
     overlay.remove();
-    showToast({
-      kind: 'info',
-      title: 'Timer running in background',
-      body: 'Use the timer in the title bar to reopen it.',
-      timeout: 4000,
-    });
+    if (notify) {
+      showToast({
+        kind: 'info',
+        title: 'Timer running in background',
+        body: 'Use the timer in the title bar to reopen it.',
+        timeout: 4000,
+      });
+    }
   }
 
   function goToEndStep() {
@@ -451,6 +461,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
 
   function finishSession(note, completed) {
     ended = true;
+    activeModalBackgroundHandler = null;
     const result = store.logSession({
       categoryId: category.id,
       seconds: noteStepSeconds,
@@ -482,6 +493,7 @@ export function openFocusModal(category, store, { resumeLog = null } = {}) {
 
     modal.querySelector('#ft-done').addEventListener('click', () => {
       removeClockListeners();
+      activeModalBackgroundHandler = null;
       activeModalOpen = false;
       overlay.remove();
     });

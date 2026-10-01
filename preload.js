@@ -45,6 +45,15 @@ contextBridge.exposeInMainWorld('api', {
       }
     });
   },
+  onBeforeWindowClose: (callback) => {
+    ipcRenderer.on('app:flushBeforeWindowClose', async () => {
+      try {
+        await callback();
+      } finally {
+        ipcRenderer.send('app:windowCloseReady');
+      }
+    });
+  },
 
   onReminder: (callback) => {
     const handler = (_event, payload) => callback(payload);

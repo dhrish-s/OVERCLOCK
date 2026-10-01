@@ -50,6 +50,8 @@ let focusDeadlineTimer = null;
 let reminderTimer = null;
 let quitReady = false;
 let quitFlushTimer = null;
+let windowClosePending = false;
+let windowCloseTimer = null;
 let appliedLaunchOnStartup = null;
 
 const userDataDir = app.getPath('userData');
@@ -154,6 +156,7 @@ function createWindow(startHidden) {
       webSecurity: true,
       allowRunningInsecureContent: false,
       spellcheck: false,
+      backgroundThrottling: true,
     },
   });
 
@@ -167,12 +170,17 @@ function createWindow(startHidden) {
     if (!startHidden) mainWindow.show();
   });
 
-  // Closing the window hides it (reminders + streak keep running in the
-  // tray); only the tray's "Quit" item actually exits the process.
+  // Closing suspends the renderer after it flushes. The tray, reminders,
+  // and wall-clock timer deadlines continue in the small main process.
   mainWindow.on('close', (e) => {
     if (!isQuitting) {
       e.preventDefault();
       mainWindow.hide();
+      if (!windowClosePending) {
+        windowClosePending = true;
+        mainWindow.webContents.send('app:flushBeforeWindowClose');
+        windowCloseTimer = setTimeout(destroyMainWindow, 1000);
+      }
     }
   });
 
@@ -192,6 +200,23 @@ function createWindow(startHidden) {
   mainWindow.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
 }
 
+function destroyMainWindow() {
+  if (windowCloseTimer) clearTimeout(windowCloseTimer);
+  windowCloseTimer = null;
+  windowClosePending = false;
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow(false);
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 function createTray() {
   const iconPath = path.join(__dirname, 'build', 'icon.png');
   try {
@@ -201,7 +226,7 @@ function createTray() {
     return;
   }
   const menu = Menu.buildFromTemplate([
-    { label: 'Open Overclock', click: () => mainWindow && mainWindow.show() },
+    { label: 'Open Overclock', click: showMainWindow },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -213,12 +238,12 @@ function createTray() {
   ]);
   tray.setToolTip('Overclock - daily execution console');
   tray.setContextMenu(menu);
-  tray.on('click', () => mainWindow && mainWindow.show());
+  tray.on('click', showMainWindow);
 }
 
 // ---------------------------------------------------------------------
-// Reminder engine - lives in the main process so it keeps ticking even
-// while the window is hidden in the tray.
+// Reminder engine lives in the main process so the interface can stay
+// suspended between reminder deadlines.
 // ---------------------------------------------------------------------
 let reminderSettings = { waterMinutes: 60, walkMinutes: 90, enabled: true, sound: true };
 let lastWaterAt = Date.now();
@@ -232,7 +257,7 @@ function fireReminder(kind, title, body) {
   } catch (err) {
     console.error('[overclock] notification failed:', err);
   }
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('reminder:fire', { kind, title, body, at: Date.now() });
   }
 }
@@ -284,11 +309,7 @@ app.whenReady().then(() => {
 });
 
 app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
-  }
+  showMainWindow();
 });
 
 app.on('window-all-closed', () => {
@@ -364,6 +385,10 @@ ipcMain.handle('app:getVersion', (event) => {
 ipcMain.on('app:flushComplete', (event) => {
   requireTrustedIpc(event);
   finishQuit();
+});
+ipcMain.on('app:windowCloseReady', (event) => {
+  requireTrustedIpc(event);
+  if (windowClosePending) destroyMainWindow();
 });
 
 ipcMain.handle('timer:scheduleDeadline', (event, payload) => {
@@ -445,7 +470,7 @@ ipcMain.on('window:maximize', (event) => {
 });
 ipcMain.on('window:close', (event) => {
   requireTrustedIpc(event);
-  if (mainWindow) mainWindow.hide();
+  if (mainWindow) mainWindow.close();
 });
 
 ipcMain.handle('dialog:exportFile', async (event, { defaultName, content }) => {
