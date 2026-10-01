@@ -90,22 +90,22 @@ The gallery below uses synthetic sample activity created only for these screensh
 
 ## Install Overclock
 
-### Download Version 1.0.3
+### Download Version 1.0.4
 
 1. Open the [latest GitHub release](https://github.com/dhrish-s/OVERCLOCK/releases/latest).
-2. Download `Overclock.Setup.1.0.3.exe`.
+2. Download `Overclock.Setup.1.0.4.exe`.
 3. Run the installer and choose an installation folder.
 4. Launch Overclock from the Start menu or desktop shortcut.
 
-The Version 1.0.3 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+The Version 1.0.4 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
 
-### What Is New in Version 1.0.3
+### What Is New in Version 1.0.4
 
-- Share any selected worklog day as a polished PNG image.
-- Save the same daily summary as a lightweight text file for chat or email.
-- Preview the image before saving and hide notes with one privacy toggle.
-- Keep all sharing local, with no account, public link, server, or upload.
-- Validate PNG type, signature, size, and filename before the app writes a file.
+- Keep an active timer running when its modal or the main window closes.
+- Suspend the interface while closed to reduce background CPU and memory use.
+- Restore the active session from the laptop clock when Overclock reopens.
+- Schedule reminders only at their next deadline instead of polling continuously.
+- Remove unnecessary animation and refresh work from idle screens.
 
 ### Install Locally From Source
 
@@ -140,7 +140,7 @@ npm run dist
 When the build finishes, install the app by opening:
 
 ```text
-dist\Overclock Setup 1.0.3.exe
+dist\Overclock Setup 1.0.4.exe
 ```
 
 Complete the setup wizard, then launch Overclock from the Start menu or desktop shortcut. Your activity data will be stored separately in `%APPDATA%\Overclock`, so rebuilding the source does not erase your existing records.
@@ -189,9 +189,10 @@ A healthy test run currently finishes with:
 123 passed, 0 failed
 4 storage recovery checks passed
 4 image export checks passed
+4 reminder scheduling checks passed
 ```
 
-The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.3.exe`.
+The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.4.exe`.
 
 If PowerShell blocks `npm.ps1`, use the Windows command shim instead:
 
