@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const { loadDataWithRecovery } = require('../storage');
 const { decodePngDataUrl } = require('../export-utils');
+const { nextReminderDelay } = require('../reminder-utils');
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'overclock-storage-'));
 const dataFile = path.join(root, 'overclock-data.json');
@@ -29,6 +30,13 @@ try {
   assert.throws(() => decodePngDataUrl('data:image/png;base64,aGVsbG8=', 1024), /invalid PNG/);
   assert.throws(() => decodePngDataUrl(onePixelPng, 4), /safety limit/);
   console.log('4 image export checks passed');
+
+  const now = 1_000_000;
+  assert.strictEqual(nextReminderDelay({ enabled: false }, now, now, now), null);
+  assert.strictEqual(nextReminderDelay({ enabled: true, waterMinutes: 10, walkMinutes: 20 }, now, now, now), 600000);
+  assert.strictEqual(nextReminderDelay({ enabled: true, waterMinutes: 30, walkMinutes: 5 }, now, now, now), 300000);
+  assert.strictEqual(nextReminderDelay({ enabled: true, waterMinutes: 10, walkMinutes: 20 }, now - 700000, now, now), 1000);
+  console.log('4 reminder scheduling checks passed');
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

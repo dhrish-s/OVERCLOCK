@@ -28,6 +28,7 @@ const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { loadDataWithRecovery } = require('./storage');
 const { decodePngDataUrl } = require('./export-utils');
+const { nextReminderDelay, reminderIntervalMs } = require('./reminder-utils');
 
 const IS_WINDOWS = process.platform === 'win32';
 if (IS_WINDOWS) {
@@ -46,8 +47,10 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 let focusDeadlineTimer = null;
+let reminderTimer = null;
 let quitReady = false;
 let quitFlushTimer = null;
+let appliedLaunchOnStartup = null;
 
 const userDataDir = app.getPath('userData');
 const dataFilePath = path.join(userDataDir, 'overclock-data.json');
@@ -116,12 +119,16 @@ function safeWriteData(data) {
 // point the registry Run key at electron.exe itself, not Overclock, so we
 // skip it there and just log what would have happened.
 function syncLoginItemSetting(enabled) {
+  const nextEnabled = !!enabled;
+  if (appliedLaunchOnStartup === nextEnabled) return;
   if (!app.isPackaged) {
-    console.log(`[overclock] (dev) skipping login-item registration, would set: ${!!enabled}`);
+    appliedLaunchOnStartup = nextEnabled;
+    console.log(`[overclock] (dev) skipping login-item registration, would set: ${nextEnabled}`);
     return;
   }
   try {
-    app.setLoginItemSettings({ openAtLogin: !!enabled, path: process.execPath });
+    app.setLoginItemSettings({ openAtLogin: nextEnabled, path: process.execPath });
+    appliedLaunchOnStartup = nextEnabled;
   } catch (err) {
     console.error('[overclock] failed to set login item:', err);
   }
@@ -230,17 +237,28 @@ function fireReminder(kind, title, body) {
   }
 }
 
-function tickReminders() {
+function tickReminders(now = Date.now()) {
   if (!reminderSettings.enabled) return;
-  const now = Date.now();
-  if (now - lastWaterAt >= reminderSettings.waterMinutes * 60000) {
+  if (now - lastWaterAt >= reminderIntervalMs(reminderSettings.waterMinutes, 60)) {
     lastWaterAt = now;
     fireReminder('water', 'Hydration check', 'Drink some water and reset your focus for a minute.');
   }
-  if (now - lastWalkAt >= reminderSettings.walkMinutes * 60000) {
+  if (now - lastWalkAt >= reminderIntervalMs(reminderSettings.walkMinutes, 90)) {
     lastWalkAt = now;
     fireReminder('walk', 'Movement break', 'Stand up, stretch, and take a short walk before the next block.');
   }
+}
+
+function scheduleReminderTick() {
+  if (reminderTimer) clearTimeout(reminderTimer);
+  reminderTimer = null;
+  const delayMs = nextReminderDelay(reminderSettings, lastWaterAt, lastWalkAt);
+  if (delayMs === null) return;
+  reminderTimer = setTimeout(() => {
+    reminderTimer = null;
+    tickReminders();
+    scheduleReminderTick();
+  }, delayMs);
 }
 
 app.whenReady().then(() => {
@@ -262,7 +280,7 @@ app.whenReady().then(() => {
   const startHidden = app.isPackaged && !!app.getLoginItemSettings().wasOpenedAtLogin;
   createWindow(startHidden);
   createTray();
-  setInterval(tickReminders, 30000);
+  scheduleReminderTick();
 });
 
 app.on('second-instance', () => {
@@ -317,12 +335,18 @@ ipcMain.handle('data:save', (event, data) => {
   requireTrustedIpc(event);
   try {
     if (data && data.settings) {
-      reminderSettings = {
+      const nextReminderSettings = {
         waterMinutes: Number(data.settings.waterReminderMinutes) || 60,
         walkMinutes: Number(data.settings.walkReminderMinutes) || 90,
         enabled: data.settings.remindersEnabled !== false,
         sound: data.settings.soundEnabled !== false,
       };
+      const reminderScheduleChanged =
+        nextReminderSettings.waterMinutes !== reminderSettings.waterMinutes ||
+        nextReminderSettings.walkMinutes !== reminderSettings.walkMinutes ||
+        nextReminderSettings.enabled !== reminderSettings.enabled;
+      reminderSettings = nextReminderSettings;
+      if (reminderScheduleChanged) scheduleReminderTick();
       syncLoginItemSetting(data.settings.launchOnStartup !== false);
     }
     safeWriteData(data);

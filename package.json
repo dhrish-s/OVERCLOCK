@@ -27,6 +27,7 @@
       "preload.js",
       "storage.js",
       "export-utils.js",
+      "reminder-utils.js",
       "src/**/*",
       "package.json",
       "LICENSE",
