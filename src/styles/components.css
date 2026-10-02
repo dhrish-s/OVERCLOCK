@@ -832,8 +832,11 @@
 }
 
 .timeline-track {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
   height: 18px;
+  padding: 3px;
   border-radius: var(--r-chip);
   background: var(--void);
   border: 1px solid var(--border-soft);
@@ -846,10 +849,12 @@
 
 .timeline-task-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 3px 12px;
   min-width: 0;
   padding: 4px 2px 1px;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .timeline-task {
@@ -857,7 +862,8 @@
   align-items: center;
   gap: 5px;
   min-width: 0;
-  max-width: 100%;
+  max-width: 260px;
+  flex: 0 0 auto;
   overflow: hidden;
   color: var(--ink);
   font-size: 11px;
@@ -894,7 +900,7 @@
 }
 
 .timeline-block {
-  position: absolute;
+  position: relative;
   height: 10px;
   min-width: 4px;
   border-radius: 2px;

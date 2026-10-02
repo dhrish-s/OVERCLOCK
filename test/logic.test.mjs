@@ -303,8 +303,8 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
     '2026-06-17',
     new Date(2026, 5, 17, 12, 0)
   );
-  assertEqual(overlapTimeline[9].laneCount, 2, 'buildHourlyTimeline creates separate lanes for overlapping entries');
-  assertEqual(overlapTimeline[9].entries.map((entry) => entry.lane), [0, 1], 'overlapping timeline entries do not cover each other');
+  assertEqual(overlapTimeline[9].laneCount, 1, 'buildHourlyTimeline keeps every hour in one compact visual lane');
+  assertEqual(overlapTimeline[9].entries.map((entry) => entry.lane), [0, 0], 'overlapping timeline entries render side by side');
   const gaps = worklogIdleGaps(
     [
       ...dayEntries,
@@ -508,8 +508,16 @@ assertEqual(formatMinutesShort(120), '2h', 'formatMinutesShort exact hour with n
   const store = new Store();
   store._scheduleSave = () => {};
   store.data.worklog.push({ id: 'earned-session', type: 'session', status: 'completed' });
-  assertEqual(store.deleteWorklogEntry('earned-session').ok, false, 'reward-bearing session logs cannot be deleted independently');
+  assertEqual(store.deleteWorklogEntry('earned-session').ok, true, 'finished automatic session logs can be deleted');
+  assertEqual(store.data.worklog.length, 0, 'deleting a finished automatic session removes its worklog row');
   assertEqual(store.updateWorklogEntry('earned-session', {}).ok, false, 'reward-bearing session logs cannot be edited independently');
+}
+
+{
+  const store = new Store();
+  store._scheduleSave = () => {};
+  store.data.worklog.push({ id: 'active-session', type: 'session', status: 'active' });
+  assertEqual(store.deleteWorklogEntry('active-session').ok, false, 'active session logs remain protected from deletion');
 }
 
 {

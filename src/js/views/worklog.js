@@ -61,8 +61,8 @@ function timelineHtml(timeline, store) {
           const cat = store.getCategory(entry.categoryId);
           const color = timelineColor(cat);
           const label = escapeHtml(cat ? cat.name : 'Unknown');
-          const top = 3 + entry.lane * 12;
-          return `<div class="timeline-block ${entry.status}" style="left:${entry.offsetPct}%;width:${entry.widthPct}%;top:${top}px;--block-color:${color}" data-tip="${label} - ${escapeHtml(entryText(entry))}"></div>`;
+          const weight = Math.max(2, entry.widthPct);
+          return `<div class="timeline-block ${entry.status}" style="flex:${weight} 1 0;--block-color:${color}" data-tip="${label} - ${escapeHtml(entryText(entry))}"></div>`;
         })
         .join('');
       const taskLabels = hour.entries
@@ -73,7 +73,7 @@ function timelineHtml(timeline, store) {
         .join('');
       return `<div class="timeline-hour ${hour.entries.length ? 'has-work' : ''}">
         <div class="timeline-label mono">${hour.label}</div>
-        <div class="timeline-cell"><div class="timeline-track" style="height:${6 + hour.laneCount * 12}px">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
+        <div class="timeline-cell"><div class="timeline-track">${blocks}</div>${taskLabels ? `<div class="timeline-task-list">${taskLabels}</div>` : ''}</div>
         <div class="timeline-min mono">${hour.totalMinutes ? `${hour.totalMinutes}m` : ''}</div>
       </div>`;
     })
@@ -108,7 +108,8 @@ function detailsHtml(entries, store) {
             <div class="log-tag" style="color:${color}">${icon(cat ? cat.icon : 'book', 12)}<span>${escapeHtml(cat ? cat.name : 'Unknown')}</span></div>
             <div class="row log-entry-actions">
               <span class="badge ${entry.status === 'active' ? 'active' : entry.status === 'discarded' ? 'idle' : entry.type === 'manual' ? 'manual' : entry.completed ? 'done' : 'idle'}">${statusLabel(entry)}</span>
-              ${entry.status !== 'active' && entry.type !== 'session' ? `<button class="btn btn-ghost btn-icon edit-log-entry" data-log-id="${entry.id}" data-tip="Edit entry">${icon('edit', 13)}</button><button class="btn btn-ghost btn-icon delete-log-entry" data-log-id="${entry.id}" data-tip="Delete entry">${icon('trash', 13)}</button>` : ''}
+              ${entry.status !== 'active' && entry.type !== 'session' ? `<button class="btn btn-ghost btn-icon edit-log-entry" data-log-id="${entry.id}" data-tip="Edit entry">${icon('edit', 13)}</button>` : ''}
+              ${entry.status !== 'active' ? `<button class="btn btn-ghost btn-icon delete-log-entry" data-log-id="${entry.id}" data-tip="Delete entry">${icon('trash', 13)}</button>` : ''}
             </div>
           </div>
           ${entry.intent ? `<div class="log-intent">${escapeHtml(entry.intent)}</div>` : ''}
@@ -415,7 +416,7 @@ export function render(root, store) {
     });
     root.querySelectorAll('.delete-log-entry').forEach((button) => {
       button.addEventListener('click', () => {
-        if (!window.confirm('Delete this worklog entry?')) return;
+        if (!window.confirm('Delete this worklog entry? Earned rewards and progress will stay unchanged.')) return;
         const result = store.deleteWorklogEntry(button.dataset.logId);
         if (!result.ok) window.alert(result.error);
       });

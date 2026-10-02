@@ -500,12 +500,12 @@ export class Store {
     return { ok: true, entry: this.data.worklog.find((item) => item.id === logId) };
   }
 
-  /** Delete a finished timeline row while leaving earned rewards unchanged. */
+  /** Delete any finished timeline row. Completed session rewards and progress
+   * stay intact because the worklog is only the user's editable history. */
   deleteWorklogEntry(logId) {
     const entry = this.data.worklog.find((item) => item.id === logId);
     if (!entry) return { ok: false, error: 'This worklog entry no longer exists.' };
     if (entry.status === 'active') return { ok: false, error: 'End the active session before deleting it.' };
-    if (entry.type === 'session') return { ok: false, error: 'Automatic sessions are locked because they are linked to rewards and streaks.' };
     this.mutate((data) => {
       data.worklog = data.worklog.filter((item) => item.id !== logId);
     });

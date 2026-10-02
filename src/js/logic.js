@@ -379,7 +379,6 @@ export function buildHourlyTimeline(entries, key, now = new Date()) {
   return Array.from({ length: 24 }, (_, hour) => {
     const hourStart = dayStartMs + hour * 3600000;
     const hourEnd = hourStart + 3600000;
-    const laneEnds = [];
     const hourEntries = (entries || [])
       .map((entry) => normalizedWorklogEntry(entry, now))
       .filter((entry) => entryStartMs(entry) < hourEnd && entryEndMs(entry, now.getTime()) > hourStart)
@@ -387,12 +386,9 @@ export function buildHourlyTimeline(entries, key, now = new Date()) {
       .map((entry) => {
         const s = Math.max(entryStartMs(entry), hourStart);
         const e = Math.min(entryEndMs(entry, now.getTime()), hourEnd);
-        let lane = laneEnds.findIndex((laneEnd) => laneEnd <= s);
-        if (lane === -1) lane = laneEnds.length;
-        laneEnds[lane] = e;
         return {
           ...entry,
-          lane,
+          lane: 0,
           offsetPct: ((s - hourStart) / 3600000) * 100,
           widthPct: Math.max(2, ((e - s) / 3600000) * 100),
         };
@@ -402,7 +398,7 @@ export function buildHourlyTimeline(entries, key, now = new Date()) {
       const e = Math.min(entryEndMs(entry, now.getTime()), hourEnd);
       return sum + Math.max(0, Math.round((e - s) / 60000));
     }, 0);
-    return { hour, label: `${String(hour).padStart(2, '0')}:00`, entries: hourEntries, laneCount: Math.max(1, laneEnds.length), totalMinutes };
+    return { hour, label: `${String(hour).padStart(2, '0')}:00`, entries: hourEntries, laneCount: 1, totalMinutes };
   });
 }
 
