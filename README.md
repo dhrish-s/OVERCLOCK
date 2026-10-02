@@ -8,7 +8,7 @@
   [![Release](https://img.shields.io/github/v/release/dhrish-s/OVERCLOCK?style=flat-square&color=4ade80)](https://github.com/dhrish-s/OVERCLOCK/releases/latest)
   [![License: MIT](https://img.shields.io/badge/license-MIT-f6c453?style=flat-square)](LICENSE)
   [![Platform: Windows](https://img.shields.io/badge/platform-Windows-5aa9e6?style=flat-square)](#install-overclock)
-  [![Tests: 135](https://img.shields.io/badge/tests-135%20passing-4ade80?style=flat-square)](#development)
+  [![Tests: 137](https://img.shields.io/badge/tests-137%20passing-4ade80?style=flat-square)](#development)
 </div>
 
 Overclock is built for students, engineers, and anyone juggling focused work across a full day. Start a timer when you sit down, add forgotten work later, and use the worklog to see where your time actually went.
@@ -78,7 +78,7 @@ The gallery below uses synthetic sample activity created only for these screensh
 - **Automatic worklog:** Timer sessions appear in the hourly timeline without duplicate entry.
 - **Manual time entry:** Backfill a task with its category, date, start time, end time, and note.
 - **Quick templates:** Add common activities such as Gym, Class, Reading, Interview prep, and Errands.
-- **Editable history:** Correct or remove finished manual entries when plans change.
+- **Editable history:** Correct manual entries or remove any finished log when plans change.
 - **Idle gap detection:** See untracked periods between work blocks instead of guessing where the day went.
 - **Private day sharing:** Export a polished PNG or plain-text daily summary with an option to hide notes.
 - **Flexible focus tools:** Use stopwatch, countdown, or Pomodoro modes for each category.
@@ -90,22 +90,22 @@ The gallery below uses synthetic sample activity created only for these screensh
 
 ## Install Overclock
 
-### Download Version 1.0.4
+### Download Version 1.0.5
 
 1. Open the [latest GitHub release](https://github.com/dhrish-s/OVERCLOCK/releases/latest).
-2. Download `Overclock.Setup.1.0.4.exe`.
+2. Download `Overclock.Setup.1.0.5.exe`.
 3. Run the installer and choose an installation folder.
 4. Launch Overclock from the Start menu or desktop shortcut.
 
-The Version 1.0.4 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
+The Version 1.0.5 installer is not code-signed. Windows SmartScreen may show an unrecognized publisher warning. If you downloaded it from this repository, select **More info**, then **Run anyway**.
 
-### What Is New in Version 1.0.4
+### What Is New in Version 1.0.5
 
-- Keep an active timer running when its modal or the main window closes.
-- Suspend the interface while closed to reduce background CPU and memory use.
-- Restore the active session from the laptop clock when Overclock reopens.
-- Schedule reminders only at their next deadline instead of polling continuously.
-- Remove unnecessary animation and refresh work from idle screens.
+- Delete finished automatic timer logs as well as manual entries.
+- Preserve earned rewards, progress, and streaks when a log row is deleted.
+- Keep active session rows protected until their timer is ended.
+- Display multiple hourly timeline blocks side by side in one compact row.
+- Keep timeline labels on one horizontal rail instead of stacking them.
 
 ### Install Locally From Source
 
@@ -140,7 +140,7 @@ npm run dist
 When the build finishes, install the app by opening:
 
 ```text
-dist\Overclock Setup 1.0.4.exe
+dist\Overclock Setup 1.0.5.exe
 ```
 
 Complete the setup wizard, then launch Overclock from the Start menu or desktop shortcut. Your activity data will be stored separately in `%APPDATA%\Overclock`, so rebuilding the source does not erase your existing records.
@@ -186,13 +186,13 @@ Then use the command that matches the job:
 A healthy test run currently finishes with:
 
 ```text
-123 passed, 0 failed
+125 passed, 0 failed
 4 storage recovery checks passed
 4 image export checks passed
 4 reminder scheduling checks passed
 ```
 
-The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.4.exe`.
+The unpacked app is written to `dist\win-unpacked\Overclock.exe`. The installer is written to `dist\Overclock Setup 1.0.5.exe`.
 
 If PowerShell blocks `npm.ps1`, use the Windows command shim instead:
 
